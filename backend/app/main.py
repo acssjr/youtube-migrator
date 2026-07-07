@@ -81,6 +81,24 @@ def on_shutdown():
     logger.info("Shutting down background queue...")
     QueueService.get_instance().stop()
 
-@app.get("/")
-def read_root():
-    return {"app": settings.APP_NAME, "status": "running"}
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+frontend_dist_path = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+
+if frontend_dist_path.exists():
+    # Mount Vite static assets
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist_path / "assets")), name="assets")
+
+    # Serve index.html for frontend routes, falling back to 404 only for missing API routes
+    @app.get("/{catchall:path}")
+    def serve_frontend(catchall: str):
+        if catchall.startswith("api"):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="API route not found")
+        return FileResponse(str(frontend_dist_path / "index.html"))
+else:
+    @app.get("/")
+    def read_root():
+        return {"app": settings.APP_NAME, "status": "running"}

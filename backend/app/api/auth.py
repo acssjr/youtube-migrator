@@ -48,11 +48,28 @@ def oauth_callback(
             )
             token_repo.save(new_token)
             
-        # Redirect back to frontend settings page to show connection success
-        return RedirectResponse(url="http://localhost:5173/settings?auth=success")
+        # Determine frontend redirect base based on environment
+        import os
+        frontend_url = os.getenv("FRONTEND_URL", "")
+        if not frontend_url:
+            if "localhost:8000" in settings.GOOGLE_REDIRECT_URI:
+                frontend_url = "http://localhost:5173"
+            else:
+                frontend_url = ""
+        
+        redirect_base = f"{frontend_url}/settings" if frontend_url else "/settings"
+        return RedirectResponse(url=f"{redirect_base}?auth=success")
     except Exception as e:
-        # Redirect with error status
-        return RedirectResponse(url=f"http://localhost:5173/settings?auth=error&reason={str(e)}")
+        import os
+        frontend_url = os.getenv("FRONTEND_URL", "")
+        if not frontend_url:
+            if "localhost:8000" in settings.GOOGLE_REDIRECT_URI:
+                frontend_url = "http://localhost:5173"
+            else:
+                frontend_url = ""
+        
+        redirect_base = f"{frontend_url}/settings" if frontend_url else "/settings"
+        return RedirectResponse(url=f"{redirect_base}?auth=error&reason={str(e)}")
 
 @router.get("/accounts", response_model=List[AccountResponse])
 def get_accounts(session: Session = Depends(get_session)):
