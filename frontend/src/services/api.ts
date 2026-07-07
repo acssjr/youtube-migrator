@@ -1,4 +1,4 @@
-import { Account, VideoInfo, Task, AppSettings, DiscoveryResponse } from '../types';
+import { Account, Task, AppSettings, DiscoveryResponse } from '../types';
 
 const BASE_URL = '/api';
 
