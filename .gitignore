@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+.eslintcache
+
+# Project Specific (Sensitive / Local Storage)
+.env
+client_secret.json
+database/*.db
+downloads/*
+!downloads/.gitkeep
+tokens/*
+!tokens/.gitkeep
+logs/*.log
+!logs/.gitkeep
+
+# IDE and OS files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
