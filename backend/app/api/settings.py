@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from app.services.cloud_session import cloud_mode
 from sqlmodel import Session
 
 from app.database.db import get_session
@@ -10,6 +11,9 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 @router.get("", response_model=SettingsResponse)
 def get_settings(session: Session = Depends(get_session)):
     """Retrieve all saved app settings."""
+    if cloud_mode():
+        return SettingsResponse(settings={"default_account_id": "", "default_channel_id": "",
+                                          "temp_downloads_dir": "", "theme": "light"})
     settings_repo = SettingsRepository(session)
     saved_settings = settings_repo.get_all()
     
@@ -28,6 +32,8 @@ def update_settings(
     session: Session = Depends(get_session)
 ):
     """Save app settings to the database."""
+    if cloud_mode():
+        raise HTTPException(501, "Preferências locais não estão disponíveis na Vercel.")
     settings_repo = SettingsRepository(session)
     
     if payload.default_account_id is not None:

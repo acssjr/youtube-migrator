@@ -19,11 +19,41 @@ class YoutubeService:
             raise ValueError("No channel info found.")
         return response["items"][0]
 
+    def list_all_video_resources(self) -> List[Dict[str, Any]]:
+        """Read the complete uploads playlist, then authoritative video snippets in batches."""
+        channel = self.youtube.channels().list(part="contentDetails", mine=True).execute()["items"][0]
+        playlist_id = channel["contentDetails"]["relatedPlaylists"]["uploads"]
+        ids = []
+        request = self.youtube.playlistItems().list(part="contentDetails", playlistId=playlist_id, maxResults=50)
+        while request:
+            response = request.execute()
+            ids.extend(item["contentDetails"]["videoId"] for item in response.get("items", []) if item.get("contentDetails", {}).get("videoId"))
+            request = self.youtube.playlistItems().list_next(request, response)
+        videos = []
+        for start in range(0, len(ids), 50):
+            response = self.youtube.videos().list(part="snippet", id=",".join(ids[start:start + 50])).execute()
+            videos.extend(response.get("items", []))
+        return videos
+
+    def get_video_resource(self, video_id: str) -> Dict[str, Any]:
+        response = self.youtube.videos().list(part="snippet", id=video_id).execute()
+        if not response.get("items"):
+            raise ValueError("Vídeo não encontrado no YouTube.")
+        return response["items"][0]
+
+    def update_video_description(self, video: Dict[str, Any], description: str) -> None:
+        snippet = video["snippet"]
+        # videos.update replaces the entire snippet: preserve every writable field.
+        writable = ("title", "categoryId", "tags", "defaultLanguage", "defaultAudioLanguage")
+        body_snippet = {key: snippet[key] for key in writable if key in snippet}
+        body_snippet["description"] = description
+        self.youtube.videos().update(part="snippet", body={"id": video["id"], "snippet": body_snippet}).execute()
+
     def list_playlists(self) -> List[Dict[str, Any]]:
         """List playlists owned by the channel."""
         playlists = []
         request = self.youtube.playlists().list(
-            part="snippet,contentDetails", mine=True, maxResults=50
+            part="snippet,contentDetails,status", mine=True, maxResults=50
         )
         while request:
             response = request.execute()

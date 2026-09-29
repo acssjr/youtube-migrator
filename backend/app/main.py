@@ -1,15 +1,21 @@
 import sys
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from app.config.config import settings
+from app.services.cloud_session import cloud_mode
 from app.database.db import init_db
-from app.api import auth, channels, migrations, settings as settings_api, logs
-from app.services.queue_service import QueueService
+from app.api import auth, settings as settings_api, descriptions
+
+if not cloud_mode():
+    from app.api import channels, migrations, logs
+    from app.services.queue_service import QueueService
 
 # Configure Loguru to write to separate logs files based on context/level
-settings.ensure_directories()
+if not cloud_mode():
+    settings.ensure_directories()
 
 # Remove standard handlers
 logger.remove()
@@ -18,31 +24,34 @@ logger.remove()
 logger.add(sys.stdout, level="INFO", format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:8}</level> | <cyan>{name}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
 
 # 2. Downloads logs
-logger.add(
+if not cloud_mode():
+ logger.add(
     str(settings.logs_path / "downloads.log"),
     filter=lambda record: "downloader_service" in record["name"] or "download" in record["message"].lower(),
     level="INFO",
     rotation="10 MB",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level:8} | {message}"
-)
+ )
 
 # 3. Uploads logs
-logger.add(
+if not cloud_mode():
+ logger.add(
     str(settings.logs_path / "uploads.log"),
     filter=lambda record: "youtube_service" in record["name"] or "upload" in record["message"].lower(),
     level="INFO",
     rotation="10 MB",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level:8} | {message}"
-)
+ )
 
 # 4. Errors logs
-logger.add(
+if not cloud_mode():
+ logger.add(
     str(settings.logs_path / "errors.log"),
     filter=lambda record: record["level"].name in ["ERROR", "CRITICAL"],
     level="ERROR",
     rotation="10 MB",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level:8} | {name}:{line} | {message}"
-)
+ )
 
 # FastAPI application initialization
 app = FastAPI(
@@ -54,7 +63,7 @@ app = FastAPI(
 # CORS setup for React Vite frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In development, allow all. Or change to ["http://localhost:5173"]
+    allow_origins=list({"http://localhost:5173", "http://127.0.0.1:5173", os.getenv("FRONTEND_URL", "")} - {""}),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,13 +71,19 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(auth.router, prefix="/api")
-app.include_router(channels.router, prefix="/api")
-app.include_router(migrations.router, prefix="/api")
 app.include_router(settings_api.router, prefix="/api")
-app.include_router(logs.router, prefix="/api")
+app.include_router(descriptions.router, prefix="/api")
+if not cloud_mode():
+    app.include_router(channels.router, prefix="/api")
+    app.include_router(migrations.router, prefix="/api")
+    app.include_router(logs.router, prefix="/api")
 
 @app.on_event("startup")
 def on_startup():
+    if cloud_mode():
+        if settings.DATABASE_URL.startswith("postgres"):
+            init_db()
+        return
     logger.info("Initializing database...")
     init_db()
     
@@ -78,6 +93,8 @@ def on_startup():
 
 @app.on_event("shutdown")
 def on_shutdown():
+    if cloud_mode():
+        return
     logger.info("Shutting down background queue...")
     QueueService.get_instance().stop()
 

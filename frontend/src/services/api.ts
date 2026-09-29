@@ -1,4 +1,4 @@
-import { Account, Task, AppSettings, DiscoveryResponse } from '../types';
+import { Account, Task, AppSettings, DiscoveryResponse, EmptyVideo, DescriptionProposal, ApplyResult } from '../types';
 
 const BASE_URL = '/api';
 
@@ -14,13 +14,22 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(errText || 'Error processing request');
+    let message = errText;
+    try { message = JSON.parse(errText).detail || errText; } catch { /* plain-text response */ }
+    throw new Error(message || 'Não foi possível concluir a solicitação.');
   }
 
   return response.json();
 }
 
 export const api = {
+  descriptions: {
+    empty: (channelId: string) => request<EmptyVideo[]>(`/descriptions/${encodeURIComponent(channelId)}/empty`),
+    preview: (channelId: string, videoIds: string[], overrides: Record<string, { work: string; composer: string; arranger: string }>) =>
+      request<DescriptionProposal[]>('/descriptions/preview', { method: 'POST', body: JSON.stringify({ channel_id: channelId, video_ids: videoIds, overrides }) }),
+    apply: (channelId: string, items: { video_id: string; description: string }[]) =>
+      request<ApplyResult[]>('/descriptions/apply', { method: 'POST', body: JSON.stringify({ channel_id: channelId, items }) }),
+  },
   auth: {
     getAuthUrl: (accountName: string) => 
       request<{ url: string }>(`/auth/url?account_name=${encodeURIComponent(accountName)}`),

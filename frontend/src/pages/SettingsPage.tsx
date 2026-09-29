@@ -163,7 +163,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Configurations Card */}
-        <Card>
+        {!import.meta.env.PROD && <Card>
           <CardHeader>
             <CardTitle>Configurações Globais</CardTitle>
             <CardDescription>
@@ -221,7 +221,7 @@ export function SettingsPage() {
               </Button>
             </CardFooter>
           </form>
-        </Card>
+        </Card>}
       </div>
     </div>
   );

@@ -2,17 +2,24 @@ from sqlmodel import SQLModel, create_engine, Session
 from app.config.config import settings
 
 # Create engine with connect_args for SQLite to avoid thread conflicts
-connect_args = {"check_same_thread": False}
-engine = create_engine(
-    f"sqlite:///{settings.db_path}", 
-    echo=settings.DEBUG, 
-    connect_args=connect_args
-)
+database_url = settings.DATABASE_URL
+if database_url.startswith("postgres://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgres://"):]
+elif database_url.startswith("postgresql://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgresql://"):]
+elif database_url.startswith("sqlite:///") and not database_url.startswith("sqlite:////"):
+    database_url = f"sqlite:///{settings.db_path}"
+engine = create_engine(database_url, echo=settings.DEBUG,
+                       connect_args={"check_same_thread": False} if database_url.startswith("sqlite:") else {},
+                       pool_pre_ping=True)
 
 def init_db():
     """Create database tables if they do not exist."""
-    settings.ensure_directories()
+    if not settings.VERCEL:
+        settings.ensure_directories()
     SQLModel.metadata.create_all(engine)
+    if settings.VERCEL:
+        return
     
     # Simple migration: add target_playlist_id column to migration_tasks if missing
     from sqlalchemy import text

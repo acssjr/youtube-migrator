@@ -1,5 +1,25 @@
 # YouTube Channel Video Migrator
 
+## Descrições em lote
+
+A interface agora abre na ferramenta **Descrições**. Conecte o canal em **Configurações**, escolha até 50 vídeos sem descrição e clique em **Buscar descrições**. O aplicativo percorre todo o histórico de uploads do canal pela YouTube Data API, apresenta uma sugestão por vídeo e mostra as fontes usadas. Você pode corrigir a obra, o compositor e o arranjador antes da busca, além de editar cada texto antes de publicar o lote.
+
+### Versão web na Vercel
+
+O projeto `youtube-acervo-aio` usa Vercel Services: Vite em `frontend/` e FastAPI em `backend/`. A versão web oferece **Descrições** e conexão de canal. A migração segue somente no aplicativo local porque sua fila atual depende de um processo e armazenamento permanentes.
+
+Para ativar a conexão Google na Vercel, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` como variáveis secretas de produção. Configure `GOOGLE_REDIRECT_URI=https://youtube-acervo-aio.vercel.app/api/auth/callback` e adicione esse mesmo URI ao cliente OAuth no Google Cloud. Faça um novo deploy após alterar as variáveis. Na versão web, a sessão OAuth fica criptografada em cookie `HttpOnly`, `Secure` e `SameSite=Lax` por 30 dias; ela não é gravada no SQLite da função. Mantenha a proteção de acesso da Vercel ativa para este uso pessoal.
+
+O preenchimento segue esta ordem:
+
+1. Outra publicação da mesma obra: usa o texto específico da obra.
+2. Outra obra do mesmo compositor: usa apenas um parágrafo identificável sobre ele.
+3. Outro arranjo do mesmo arranjador: usa apenas o crédito do arranjador.
+
+Os blocos com links vêm da publicação **mais recente que contenha links**. A API informa a data de publicação do vídeo; ela não informa quando a descrição foi editada. Se não houver referência segura, o aplicativo deixa o campo vazio para revisão. Antes de gravar, confirma novamente que o vídeo pertence ao canal e continua sem descrição. Os resultados do lote indicam o que foi publicado, ignorado ou falhou.
+
+Esta função usa os escopos OAuth já declarados pelo projeto, inclusive `youtube.force-ssl`, necessário para atualizar metadados. Canais conectados anteriormente sem esse escopo precisam ser reconectados. A migração continua disponível como utilidade separada.
+
 Uma ferramenta local automatizada em React, TypeScript e Python (FastAPI) para migração de vídeos entre canais do YouTube gerenciados por você.
 
 > [!IMPORTANT]
@@ -49,6 +69,22 @@ youtube-migrator/
 ---
 
 ## 🚀 Como Executar
+
+### Deploy na Vercel
+
+O site e a API FastAPI são publicados pelo `vercel.json`. Para conectar contas no deploy,
+configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` e um
+`DATABASE_URL` PostgreSQL persistente no ambiente de produção. No cliente OAuth do
+Google, autorize exatamente `https://youtube-acervo-aio.vercel.app/api/auth/callback`.
+
+As contas ficam no PostgreSQL com os tokens OAuth criptografados. O navegador mantém
+somente um identificador aleatório em cookie seguro, válido por um ano. Assim, os
+vínculos sobrevivem a novos deploys e várias contas podem ser conectadas ao mesmo
+navegador. Limpar os cookies ou usar outro navegador exige conectar as contas de novo;
+o Google também pode revogar ou expirar um token de atualização.
+
+O deploy da Vercel atende às ferramentas de descrição. A migração de arquivos grandes
+precisa de um worker e armazenamento persistentes em outro serviço de nuvem.
 
 ### 🛠️ Pré-requisitos
 

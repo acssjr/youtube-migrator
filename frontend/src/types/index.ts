@@ -6,6 +6,31 @@ export interface Account {
   created_at: string;
 }
 
+export interface EmptyVideo {
+  id: string;
+  title: string;
+  published_at: string;
+  thumbnail_url: string;
+}
+
+export interface DescriptionProposal {
+  video_id: string;
+  title: string;
+  published_at: string;
+  identity: { work: string; composer: string; arranger: string };
+  description: string;
+  match_type: 'same_work' | 'composer' | 'arranger' | 'none';
+  source: { id: string; title: string } | null;
+  links_source: { id: string; title: string } | null;
+  reason: string;
+}
+
+export interface ApplyResult {
+  video_id: string;
+  status: 'updated' | 'skipped' | 'error';
+  message: string;
+}
+
 export interface VideoInfo {
   id: string;
   title: string;

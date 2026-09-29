@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     HOST: str = "127.0.0.1"
+    VERCEL: str = ""
     
     # Database
     DATABASE_URL: str = "sqlite:///database/youtube_migrator.db"

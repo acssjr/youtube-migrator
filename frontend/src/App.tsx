@@ -4,6 +4,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { MigrationPage } from './pages/MigrationPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LogsPage } from './pages/LogsPage';
+import { DescriptionsPage } from './pages/DescriptionsPage';
 
 // Create TanStack Query client
 const queryClient = new QueryClient({
@@ -16,11 +17,12 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('migration');
+  const [activeTab, setActiveTab] = useState<string>(window.location.pathname === '/settings' || new URLSearchParams(window.location.search).has('auth') ? 'settings' : 'descriptions');
 
   return (
     <QueryClientProvider client={queryClient}>
       <DashboardLayout activeTab={activeTab} setActiveTab={setActiveTab}>
+        {activeTab === 'descriptions' && <DescriptionsPage />}
         {activeTab === 'migration' && <MigrationPage />}
         {activeTab === 'settings' && <SettingsPage />}
         {activeTab === 'logs' && <LogsPage />}

@@ -13,6 +13,18 @@ class OAuthToken(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+class CloudOAuthAccount(SQLModel, table=True):
+    __tablename__ = "cloud_oauth_accounts"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    owner_id: str = Field(index=True)
+    account_name: str
+    channel_id: str = Field(index=True)
+    channel_title: str
+    encrypted_token: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 class MigrationTask(SQLModel, table=True):
     __tablename__ = "migration_tasks"
     
