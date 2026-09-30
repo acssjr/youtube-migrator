@@ -7,7 +7,7 @@ from loguru import logger
 from app.config.config import settings
 from app.services.cloud_session import cloud_mode
 from app.database.db import init_db
-from app.api import auth, settings as settings_api, descriptions, downloads, uploads
+from app.api import auth, settings as settings_api, descriptions, downloads, uploads, acervo, revisions, download_packages, download_controls, approved_texts_api, footer_templates, work_catalog, acervo_search, smart_playlists, playlist_audit, archive_backup, mp3_tags
 
 if not cloud_mode():
     from app.api import channels, migrations, logs
@@ -76,6 +76,18 @@ app.include_router(settings_api.router, prefix="/api")
 app.include_router(descriptions.router, prefix="/api")
 app.include_router(downloads.router, prefix="/api")
 app.include_router(uploads.router, prefix="/api")
+app.include_router(acervo.router, prefix="/api")
+app.include_router(revisions.router, prefix="/api")
+app.include_router(download_packages.router, prefix="/api")
+app.include_router(download_controls.router, prefix="/api")
+app.include_router(approved_texts_api.router, prefix="/api")
+app.include_router(footer_templates.router, prefix="/api")
+app.include_router(work_catalog.router, prefix="/api")
+app.include_router(acervo_search.router, prefix="/api")
+app.include_router(smart_playlists.router, prefix="/api")
+app.include_router(playlist_audit.router, prefix="/api")
+app.include_router(archive_backup.router, prefix="/api")
+app.include_router(mp3_tags.router, prefix="/api")
 
 @app.get("/api/capabilities")
 def capabilities():

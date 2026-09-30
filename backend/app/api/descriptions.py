@@ -73,7 +73,11 @@ def preview(payload: PreviewRequest, request: Request, session: Session = Depend
         by_id = {v["id"]: v for v in videos}
         if any(video_id not in by_id or by_id[video_id]["snippet"].get("description", "").strip() for video_id in payload.video_ids):
             raise HTTPException(409, "A seleção contém vídeo externo ao canal ou com descrição preenchida.")
-        return [propose(by_id[video_id], videos, payload.overrides.get(video_id).model_dump() if video_id in payload.overrides else None, playlists)
+        from app.api.acervo import acervo_owner
+        from app.models.acervo_models import AcervoRecord
+        from app.services.approved_texts import enrich_proposal
+        records = session.exec(select(AcervoRecord).where(AcervoRecord.owner_id == acervo_owner(request), AcervoRecord.kind == "approved_text")).all()
+        return [enrich_proposal(propose(by_id[video_id], videos, payload.overrides.get(video_id).model_dump() if video_id in payload.overrides else None, playlists), records)
                 for video_id in payload.video_ids]
     except HTTPException:
         raise
@@ -83,6 +87,7 @@ def preview(payload: PreviewRequest, request: Request, session: Session = Depend
 
 @router.post("/apply")
 def apply(payload: ApplyRequest, request: Request, session: Session = Depends(get_session)):
+    from app.api.revisions import publish_revision, owner
     if not payload.items or len(payload.items) > 50 or len({item.video_id for item in payload.items}) != len(payload.items):
         raise HTTPException(400, "Envie entre 1 e 50 vídeos distintos.")
     service = channel_service(payload.channel_id, session, request)
@@ -100,7 +105,7 @@ def apply(payload: ApplyRequest, request: Request, session: Session = Depends(ge
             if video["snippet"].get("description", "").strip():
                 results.append({"video_id": item.video_id, "status": "skipped", "message": "Descrição já preenchida; nenhuma alteração feita."})
                 continue
-            service.update_video_description(video, item.description.strip())
+            publish_revision(session, service, payload.channel_id, owner(request), video, item.description)
             results.append({"video_id": item.video_id, "status": "updated", "message": "Descrição publicada."})
         except Exception as error:
             results.append({"video_id": item.video_id, "status": "error", "message": str(error)})

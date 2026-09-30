@@ -1,0 +1,37 @@
+.acervo-tools { display:grid; gap:20px; }
+.acervo-tools .workspace-panel { padding:24px; }
+.acervo-tools h2 { font-size:20px; margin:0 0 8px; }
+.acervo-tools p { line-height:1.6; color:#68747a; }
+.acervo-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin:20px 0; }
+.acervo-form label { display:grid; gap:8px; font-size:13px; }
+.acervo-form input,.acervo-form select,.acervo-form textarea,.acervo-search { border:1px solid #dedbd4; border-radius:9px; padding:12px; background:#fffdf9; min-width:0; width:100%; color:#26343b; }
+.acervo-form textarea { min-height:130px; }
+.acervo-form .full { grid-column:1/-1; }
+.acervo-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:12px 0; }
+.acervo-actions button,.acervo-tabs button { border:1px solid #dedbd4; border-radius:9px; padding:11px 15px; background:white; min-height:44px; }
+.acervo-actions button:disabled { opacity:.5; }
+.acervo-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.acervo-tabs button[aria-pressed=true] { background:#f5e8df; color:#ad3f32; border-color:#bc4335; }
+.acervo-record-list { display:grid; gap:12px; }
+.acervo-record { border:1px solid #e5e1d9; border-radius:10px; padding:16px; }
+.acervo-record pre { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; }
+.acervo-record small { color:#68747a; }
+.acervo-tools label { display:grid; gap:8px; margin:12px 0; font-size:14px; font-weight:600; }
+.acervo-tools input:not([type=checkbox]), .acervo-tools select, .acervo-tools textarea { width:100%; min-width:0; padding:12px 14px; border:1px solid #dcd8d1; border-radius:10px; background:#fff; color:#26343b; font:inherit; font-weight:400; }
+.acervo-tools textarea { min-height:150px; resize:vertical; }
+.acervo-tools label:has(input[type=checkbox]) { display:flex; align-items:center; font-weight:400; }
+.acervo-tools input[type=checkbox] { width:18px; height:18px; accent-color:#b53e2e; }
+.acervo-tools button:not(.primary-action):not(.nav-item) { min-height:42px; padding:10px 14px; border:1px solid #dedbd4; border-radius:9px; background:white; }
+.acervo-tools button[aria-pressed=true] { background:#f5e8df !important; color:#ad3f32; border-color:#bc4335 !important; }
+.acervo-tools button:disabled { opacity:.55; cursor:not-allowed; }
+.acervo-tools fieldset { border:1px solid #e5e1d9; padding:20px; border-radius:12px; margin:20px 0; min-width:0; }
+.acervo-tools legend { padding:0 8px; font-weight:600; }
+.acervo-tools pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#faf8f3; padding:16px; border-radius:8px; font-size:14px; line-height:1.65; }
+.acervo-tools details { margin-top:16px; }
+.acervo-tools .workspace-panel .panel-top { padding:0 0 20px; }
+@media(max-width:600px) { .acervo-tools .workspace-panel {padding:18px;} .acervo-tools fieldset {padding:12px;} .acervo-tabs {gap:6px;} .acervo-tabs button {flex:1 1 130px;} }
+
+.acervo-groups { display:flex; flex-wrap:wrap; gap:8px; border-bottom:1px solid #e5e1d9; padding-bottom:14px; }
+.acervo-tools .acervo-groups button { font-weight:600; }
+.acervo-tools .acervo-tabs { margin:0; }
+.acervo-tools .acervo-tabs button {font-size:13px; padding:8px 12px; min-height:38px;}

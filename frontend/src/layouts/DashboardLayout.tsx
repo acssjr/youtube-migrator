@@ -4,6 +4,7 @@ import { ArrowRightLeft, Download, FileText, Settings, Terminal, Youtube, Upload
 
 interface Props { children: React.ReactNode; activeTab: string; setActiveTab: (tab: string) => void }
 const items = [
+  { id: 'acervo', label: 'Acervo', icon: FileText, subtitle: 'Catálogos e textos' },
   { id: 'descriptions', label: 'Descrições', icon: FileText, subtitle: 'Organizar o acervo' },
   { id: 'uploads', label: 'Uploads', icon: Upload, subtitle: 'Enviar em lote' },
   { id: 'downloads', label: 'Downloads', icon: Download, subtitle: 'Áudio e vídeo' },
@@ -14,6 +15,6 @@ const items = [
 export function DashboardLayout({ children, activeTab, setActiveTab }: Props) {
   const [localTools, setLocalTools] = useState(!import.meta.env.PROD);
   useEffect(() => { api.capabilities().then(data => setLocalTools(data.local_tools)).catch(() => {}); }, []);
-  const visibleItems = localTools ? items : items.filter(item => ['descriptions', 'uploads', 'downloads', 'settings'].includes(item.id));
+  const visibleItems = localTools ? items : items.filter(item => ['acervo', 'descriptions', 'uploads', 'downloads', 'settings'].includes(item.id));
   return <div className="app-shell"><aside className="app-sidebar"><div><div className="brand"><span className="brand-icon"><Youtube size={23} strokeWidth={2.4}/></span><span><strong>Acervo</strong><small>Ferramentas para YouTube</small></span></div><div className="nav-heading">UTILIDADES</div><nav aria-label="Ferramentas">{visibleItems.map(item => { const Icon = item.icon; return <button key={item.id} className={`nav-item ${activeTab === item.id ? 'active' : ''}`} onClick={() => setActiveTab(item.id)}><Icon size={19}/><span><strong>{item.label}</strong><small>{item.subtitle}</small></span></button>; })}</nav></div><div className="sidebar-bottom"><span className="status-dot"/> {localTools ? 'Ambiente local' : 'Versão web'} <small>{localTools ? 'Os dados do canal são acessados pela sua conexão.' : 'A migração permanece na versão local.'}</small></div></aside><main className="app-main"><header className="app-topbar"><span>Acervo / {items.find(x => x.id === activeTab)?.label}</span><span className="topbar-tag">YouTube Studio · utilidades</span></header><div className="app-content">{children}</div></main></div>;
 }

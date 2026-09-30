@@ -17,6 +17,7 @@ from sqlmodel import Session, select
 from app.config.config import settings
 from app.database.db import engine
 from app.models.models import DownloadJob
+from app.models.download_control_models import DownloadQueueControl, DownloadJobControl
 from app.services.download_engine import download_engine
 
 
@@ -80,19 +81,49 @@ class DownloadQueue:
         self.create_lock = threading.Lock()
 
     def create(self, session, owner, sources, kind, resolution):
-        identifiers = [video_id(source) for source in sources]
-        if len(set(identifiers)) != len(identifiers):
-            raise HTTPException(400, "Remova os vídeos repetidos do lote.")
-        if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-            raise HTTPException(503, "Instale FFmpeg e FFprobe no servidor para baixar MP3 e MP4.")
+        identifiers = list(dict.fromkeys(video_id(source) for source in sources))
         with self.create_lock:
-            jobs = [DownloadJob(id=uuid.uuid4().hex, owner_id=owner, video_id=identifier,
-                                format=kind, resolution=resolution,
-                                expires_at=datetime.utcnow() + timedelta(hours=max(1, settings.DOWNLOAD_RETENTION_HOURS)))
-                    for identifier in identifiers]
-            for job in jobs:
+            now = datetime.utcnow()
+            candidates = session.exec(select(DownloadJob).where(
+                DownloadJob.owner_id == owner, DownloadJob.video_id.in_(identifiers),
+                DownloadJob.format == kind, DownloadJob.resolution == resolution,
+                DownloadJob.status.in_(["queued", "running", "completed"]))
+                .order_by(DownloadJob.created_at.desc())).all()
+            reusable = {}
+            for candidate in candidates:
+                control = session.get(DownloadJobControl, candidate.id)
+                if control and control.cancelled:
+                    continue
+                if candidate.status == "completed":
+                    if candidate.expires_at <= now:
+                        continue
+                    path = job_directory(candidate.id) / ("media." + candidate.format)
+                    try:
+                        present = path.is_file() and path.stat().st_size > 0
+                    except OSError:
+                        present = False
+                    if not present:
+                        continue
+                # Prefer an existing ready file over work still waiting or running.
+                previous = reusable.get(candidate.video_id)
+                if previous is None or (candidate.status == "completed" and previous.status != "completed"):
+                    reusable[candidate.video_id] = candidate
+            missing = [identifier for identifier in identifiers if identifier not in reusable]
+            if missing and (not shutil.which("ffmpeg") or not shutil.which("ffprobe")):
+                raise HTTPException(503, "Instale FFmpeg e FFprobe no servidor para baixar MP3 e MP4.")
+            created = [DownloadJob(id=uuid.uuid4().hex, owner_id=owner, video_id=identifier,
+                                   format=kind, resolution=resolution,
+                                   expires_at=now + timedelta(hours=max(1, settings.DOWNLOAD_RETENTION_HOURS)))
+                       for identifier in missing]
+            for job in created:
                 session.add(job)
+                reusable[job.video_id] = job
+            controls = session.exec(select(DownloadJobControl).where(DownloadJobControl.owner_id == owner)).all()
+            position = max((control.position for control in controls), default=-1) + 1
+            for offset, job in enumerate(created):
+                session.add(DownloadJobControl(job_id=job.id, owner_id=owner, position=position + offset))
             session.commit()
+            jobs = [reusable[identifier] for identifier in identifiers]
             for job in jobs:
                 session.refresh(job)
             return jobs
@@ -129,8 +160,7 @@ class DownloadQueue:
             try:
                 self.cleanup()
                 with Session(engine) as session:
-                    job = session.exec(select(DownloadJob).where(DownloadJob.status == "queued")
-                                       .order_by(DownloadJob.created_at)).first()
+                    job = self.next_job(session)
                     if job:
                         self.execute(session, job)
             except Exception:
@@ -138,10 +168,33 @@ class DownloadQueue:
                 logger.exception("Falha no processamento da fila de downloads")
             self.stop_event.wait(1)
 
+    def next_job(self, session):
+        jobs = session.exec(select(DownloadJob).where(DownloadJob.status == "queued")
+                            .order_by(DownloadJob.created_at)).all()
+        paused = {row.owner_id for row in session.exec(select(DownloadQueueControl)
+                  .where(DownloadQueueControl.paused == True)).all()}
+        controls = {row.job_id: row for row in session.exec(select(DownloadJobControl)).all()}
+        owners = {}
+        for job in jobs:
+            control = controls.get(job.id)
+            if job.owner_id in paused or (control and control.cancelled):
+                continue
+            owners.setdefault(job.owner_id, []).append(job)
+        # Reorder only within each owner's queue; preserve fair arrival between owners.
+        candidates = [min(rows, key=lambda job: (controls[job.id].position if job.id in controls else -1,
+                                                job.created_at)) for rows in owners.values()]
+        return min(candidates, key=lambda job: job.created_at) if candidates else None
+
+    def cancelled(self, session, job):
+        # Separate APIs may update this row while the subprocess is running.
+        with session.no_autoflush:
+            return bool(session.exec(select(DownloadJobControl.cancelled)
+                        .where(DownloadJobControl.job_id == job.id)).first())
+
     def cleanup(self):
         with Session(engine) as session:
             expired = session.exec(select(DownloadJob).where(DownloadJob.expires_at < datetime.utcnow(),
-                                                            DownloadJob.status.in_(["completed", "error"]))).all()
+                                                            DownloadJob.status.in_(["completed", "error", "cancelled"]))).all()
             for job in expired:
                 root = job_directory(job.id).resolve()
                 if root.is_relative_to((settings.downloads_path / "exports").resolve()):
@@ -153,9 +206,14 @@ class DownloadQueue:
             for job in session.exec(select(DownloadJob).where(DownloadJob.status == "expired",
                        DownloadJob.expires_at < datetime.utcnow() - timedelta(days=7))).all():
                 session.delete(job)
+                control = session.get(DownloadJobControl, job.id)
+                if control:
+                    session.delete(control)
             session.commit()
 
     def execute(self, session, job):
+        if self.cancelled(session, job):
+            return
         root = job_directory(job.id)
         root.mkdir(parents=True, exist_ok=True)
         job.status, job.message = "running", "Preparando download..."
@@ -173,6 +231,9 @@ class DownloadQueue:
                                        start_new_session=os.name != "nt")
             deadline = time.monotonic() + min(86400, max(60, settings.DOWNLOAD_TIMEOUT_SECONDS))
             while process.poll() is None:
+                if self.cancelled(session, job):
+                    terminate_download(process)
+                    raise ValueError("Download cancelado por você.")
                 if self.stop_event.wait(1) or time.monotonic() > deadline:
                     terminate_download(process)
                     raise ValueError("Download interrompido ou tempo limite excedido. Solicite novamente.")
@@ -183,6 +244,8 @@ class DownloadQueue:
                     session.commit()
                 except (OSError, ValueError, KeyError):
                     pass
+            if self.cancelled(session, job):
+                raise ValueError("Download cancelado por você.")
             result = json.loads((root / "result.json").read_text(encoding="utf-8"))
             if process.returncode or result.get("error"):
                 raise ValueError(result.get("error", "Falha ao converter o arquivo."))
@@ -192,15 +255,22 @@ class DownloadQueue:
             job.title, job.file_size = result["title"], result["file_size"]
             job.expires_at = datetime.utcnow() + timedelta(hours=max(1, settings.DOWNLOAD_RETENTION_HOURS))
         except Exception as error:
-            job.status, job.message = "error", str(error) if isinstance(error, ValueError) else "Falha ao processar o download. Solicite novamente."
+            cancelled = self.cancelled(session, job)
+            job.status, job.message = ("cancelled" if cancelled else "error"), ("Download cancelado por você." if cancelled else str(error) if isinstance(error, ValueError) else "Falha ao processar o download. Solicite novamente.")
             for path in root.glob("media.*"):
                 if path.is_file():
                     path.unlink()
         finally:
             if process and process.poll() is None:
                 terminate_download(process)
-            session.add(job)
-            session.commit()
+            with self.create_lock:
+                if self.cancelled(session, job):
+                    job.status, job.message = "cancelled", "Download cancelado por você."
+                    for path in root.glob("media.*"):
+                        if path.is_file():
+                            path.unlink()
+                session.add(job)
+                session.commit()
 
 
 download_queue = DownloadQueue()

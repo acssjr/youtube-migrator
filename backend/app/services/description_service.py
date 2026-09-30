@@ -31,8 +31,10 @@ def identity(video: dict, override: dict | None = None) -> dict:
         for part in parts[1:]:
             candidate = re.split(r"\s*\(", part, maxsplit=1)[0].strip()
             words = candidate.split()
-            if (2 <= len(words) <= 4 and all(word[:1].isupper() for word in words)
-                    and not re.search(r"banda|filarm[oô]nica|retreta|concerto|apresenta[cç][aã]o|casar[aã]o|orquestra|projeto", candidate, re.I)):
+            if (2 <= len(words) <= 8 and words[0][:1].isupper() and words[-1][:1].isupper()
+                    and all(word[:1].isupper() or normalize(word) in {"da", "das", "de", "do", "dos", "e"} for word in words)
+                    and not re.match(r"^(?:arr\.|arranjo)\b|^arr\.", candidate, re.I)
+                    and not re.search(r"banda|filarm[oô]nica|retreta|concerto|apresenta[cç][aã]o|casar[aã]o|orquestra|projeto|noite|ao vivo", candidate, re.I)):
                 composer = candidate
                 break
         if not composer:

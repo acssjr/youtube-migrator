@@ -155,3 +155,8 @@ O script realizará automaticamente as seguintes ações:
   - `downloads.log`: Progresso do yt-dlp e informações de download.
   - `uploads.log`: Detalhes de envio e respostas da YouTube API v3.
   - `errors.log`: Apenas falhas críticas.
+
+
+## Organização e preservação do acervo
+
+As ferramentas de catálogo, textos aprovados, rodapés, revisões, playlists, repertório, backups e originais estão na área **Acervo**. Consulte [o guia das ferramentas](docs/guia-do-acervo.md). Os dados do catálogo usam o banco configurado e são isolados por proprietário na versão em nuvem. A edição do YouTube sempre exige uma ação explícita de publicação.

@@ -98,7 +98,7 @@ class UploadTests(unittest.TestCase):
         service.list_playlists.return_value = []
         payload = PreviewUploads(channel_id="channel", items=[UploadDraft(id="local", title="Marcha Nova", identity={"composer": "Autor Existente"})])
         with patch("app.api.uploads.channel_service", return_value=service), patch("app.api.uploads.propose", return_value={"description": "original"}) as proposal:
-            self.assertEqual(preview(payload, browser(), None), [{"description": "original"}])
+            self.assertEqual(preview(payload, browser(), Mock(exec=Mock(return_value=Mock(all=Mock(return_value=[]))))), [{"description": "original"}])
         self.assertEqual(proposal.call_args.args[0]["id"], "local")
         self.assertEqual(proposal.call_args.args[2]["composer"], "Autor Existente")
         service.update_video_description.assert_not_called()
@@ -107,7 +107,7 @@ class UploadTests(unittest.TestCase):
         service = Mock()
         service.list_all_video_resources.return_value = [{"id": "v", "snippet": {"title": "Dobrado Allah — Estevam Moura — Sociedade Filarmônica 25 de Março", "description": ""}}]
         with patch("app.api.uploads.channel_service", return_value=service):
-            result = catalog("channel", browser(), Response(), None)
+            result = catalog("channel", browser(), Response(), Mock(exec=Mock(return_value=Mock(all=Mock(return_value=[])))))
         self.assertEqual(result["composers"], ["Estevam Moura"])
         self.assertEqual(result["ensembles"], ["Sociedade Filarmônica 25 de Março"])
 

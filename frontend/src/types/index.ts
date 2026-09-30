@@ -12,7 +12,7 @@ export interface DownloadJob {
   title: string;
   format: 'mp3' | 'mp4';
   resolution: number;
-  status: 'queued' | 'running' | 'completed' | 'error' | 'expired';
+  status: 'queued' | 'running' | 'completed' | 'error' | 'expired' | 'cancelled';
   progress: number;
   message: string;
   file_size: number;

@@ -160,7 +160,9 @@ class DownloadsTests(unittest.TestCase):
         self.assertEqual(len(self.client.get("/api/downloads/jobs").json()), 125)
         self.assertEqual(self.create().status_code, 202)
         with patch("app.services.download_jobs.shutil.which", return_value=None):
-            self.assertEqual(self.create().status_code, 503)
+            # Existing work is reusable without a new conversion; new work still needs FFmpeg.
+            self.assertEqual(self.create().status_code, 202)
+            self.assertEqual(self.create(sources=["abcdefghijk"]).status_code, 503)
 
     def test_waiting_download_does_not_expire_before_processing(self):
         job_id = self.create().json()[0]["id"]
@@ -273,7 +275,7 @@ class DownloadsTests(unittest.TestCase):
 
     def test_restart_marks_interrupted_jobs_and_preserves_queued(self):
         job_id = self.create().json()[0]["id"]
-        queued = self.create().json()[0]["id"]
+        queued = self.create(sources=["abcdefghijk"]).json()[0]["id"]
         with Session(self.engine) as db:
             job = db.get(DownloadJob, job_id)
             job.status = "running"

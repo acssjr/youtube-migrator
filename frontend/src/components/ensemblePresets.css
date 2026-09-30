@@ -1,0 +1,23 @@
+.ensemble-presets { padding: 24px; }
+.ensemble-presets-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:24px; }
+.ensemble-presets-heading h2 { margin:0 0 8px; }
+.ensemble-presets-heading p { margin:0; max-width:650px; color:#617581; line-height:1.55; }
+.ensemble-presets-field { display:flex; flex-direction:column; gap:9px; font-size:14px; font-weight:600; margin-bottom:20px; }
+.ensemble-presets-field input,.ensemble-presets-field select,.ensemble-presets-field textarea { width:100%; box-sizing:border-box; border:1px solid #d9d6d0; border-radius:10px; background:white; color:#172d3b; padding:12px 14px; font:inherit; font-weight:400; }
+.ensemble-presets-field textarea { resize:vertical; line-height:1.6; min-height:95px; }
+.ensemble-presets-field input:focus-visible,.ensemble-presets-field select:focus-visible,.ensemble-presets-field textarea:focus-visible { outline:2px solid #b83b2c; outline-offset:2px; }
+.ensemble-presets-field small { color:#617581; font-weight:400; }
+.ensemble-presets-fields { border:0; padding:0; margin:0; min-width:0; }
+.ensemble-presets-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.ensemble-presets-title-options { display:flex; flex-wrap:wrap; align-items:center; gap:12px 22px; margin-bottom:16px; }
+.ensemble-presets-title-options strong { width:100%; font-size:14px; }
+.ensemble-presets-title-options label { display:flex; align-items:center; gap:8px; cursor:pointer; }
+.ensemble-presets-title-options input { width:18px; height:18px; accent-color:#b83b2c; }
+.ensemble-presets-preview { padding:16px; background:#f7f5f0; border-radius:10px; margin-bottom:22px; overflow-wrap:anywhere; }
+.ensemble-presets-preview small { color:#617581; }
+.ensemble-presets-preview p { margin:8px 0 0; line-height:1.6; }
+.ensemble-presets-actions { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.ensemble-presets-delete { display:inline-flex; gap:7px; align-items:center; border:0; background:transparent; color:#a83126; padding:12px 8px; cursor:pointer; font:inherit; }
+.ensemble-presets-error { color:#a83126; }
+.ensemble-presets-notice { color:#286141; }
+@media(max-width:650px) { .ensemble-presets { padding:18px; } .ensemble-presets-heading { flex-direction:column; gap:14px; } .ensemble-presets-row { grid-template-columns:1fr; gap:0; } .ensemble-presets-actions button { max-width:100%; white-space:normal; } }

@@ -10,7 +10,7 @@ from loguru import logger
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from google.auth.transport.requests import Request as GoogleRequest
 from pydantic import BaseModel, Field, field_validator
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.api.descriptions import IdentityOverride, channel_service
 from app.database.db import get_session
@@ -137,6 +137,25 @@ def catalog(channel_id: str, request: Request, response: Response, session: Sess
                     # Keep the published spelling; an event suffix is not part of the name.
                     name = re.split(r"\s*\(", part.strip(), maxsplit=1)[0].strip()
                     ensembles.add(name)
+        from app.api.acervo import acervo_owner
+        from app.models.acervo_models import AcervoRecord
+        saved = session.exec(select(AcervoRecord).where(AcervoRecord.owner_id == acervo_owner(request))).all()
+        for record in saved:
+            data = record.payload
+            if data.get("channel_id") and data["channel_id"] != channel_id:
+                continue
+            candidates = []
+            if record.kind == "work":
+                candidates = [(composers, data.get("composer")), (arrangers, data.get("arranger"))]
+            elif record.kind == "ensemble_preset":
+                candidates = [(ensembles, data.get("name"))]
+            elif record.kind == "approved_text" and data.get("approved") is True:
+                target = {"composer": composers, "arranger": arrangers, "ensemble": ensembles}.get(data.get("role"))
+                if target is not None:
+                    candidates = [(target, data.get("name"))]
+            for target, name in candidates:
+                if isinstance(name, str) and name.strip() and len(name) <= 150:
+                    target.add(name.strip())
         return {"composers": sorted(composers, key=str.casefold),
                 "arrangers": sorted(arrangers, key=str.casefold),
                 "ensembles": sorted(ensembles, key=str.casefold)}
@@ -153,8 +172,12 @@ def preview(payload: PreviewUploads, request: Request, session: Session = Depend
         videos = service.list_all_video_resources()
         playlists = service.list_playlists()
         # A local draft has no YouTube ID yet. Reuse the same conservative matching rules.
-        return [propose({"id": item.id, "snippet": {"title": item.title, "description": ""}},
-                        videos, item.identity.model_dump(), playlists) for item in payload.items]
+        from app.api.acervo import acervo_owner
+        from app.models.acervo_models import AcervoRecord
+        from app.services.approved_texts import enrich_proposal
+        records = session.exec(select(AcervoRecord).where(AcervoRecord.owner_id == acervo_owner(request), AcervoRecord.kind == "approved_text")).all()
+        return [enrich_proposal(propose({"id": item.id, "snippet": {"title": item.title, "description": ""}},
+                        videos, item.identity.model_dump(), playlists), records) for item in payload.items]
     except Exception as error:
         raise HTTPException(502, "Não foi possível consultar o acervo para este lote.") from error
 

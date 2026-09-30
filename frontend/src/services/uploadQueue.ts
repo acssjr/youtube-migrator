@@ -7,7 +7,7 @@ export type Privacy = 'private' | 'unlisted' | 'public';
 export interface UploadItem {
   id: string; name: string; size: number; modified: number; title: string; description: string;
   identity: { work: string; composer: string; arranger: string };
-  genre: string; ensemble: string;
+  genre: string; ensemble: string; titlePreferences?: {separator:string;includeGenre:boolean;includeComposer:boolean;includeArranger:boolean;includeEnsemble:boolean};
   privacy: Privacy; madeForKids: boolean; included: boolean;
   status: 'draft' | 'uploading' | 'paused' | 'error' | 'completed';
   bytes: number; sessionUrl?: string; videoId?: string; actualPrivacy?: string; error?: string;
@@ -40,7 +40,7 @@ export const uploadQueue = {
   patch: (id: string, patch: Partial<UploadItem>, persist = true) => {
     state = { ...state, items: state.items.map(item => item.id === id ? { ...item, ...patch } : item) }; emit(persist);
   },
-  add: (selection: File[], privacy: Privacy, channelId: string, ensemble = '') => {
+  add: (selection: File[], privacy: Privacy, channelId: string, ensemble = '', titlePreferences?: UploadItem['titlePreferences']) => {
     if (state.running) return;
     const items = [...state.items];
     for (const file of selection) {
@@ -50,7 +50,7 @@ export const uploadQueue = {
       if (items.length >= 50) break;
       const id = crypto.randomUUID(); files.set(id, file);
       items.push({ id, name: file.name, size: file.size, modified: file.lastModified,
-        title: '', description: '', genre: '', ensemble,
+        title: '', description: '', genre: '', ensemble, titlePreferences,
         identity: { work: '', composer: '', arranger: '' }, privacy, madeForKids: false, included: true, status: 'draft', bytes: 0 });
     }
     state = { ...state, channelId: state.channelId || channelId, items }; emit();

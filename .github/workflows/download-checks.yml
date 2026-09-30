@@ -29,7 +29,7 @@ jobs:
         working-directory: backend
       - run: npm ci && npm run build
         working-directory: frontend
-      - run: npm run test:uploads
+      - run: npm test
         working-directory: frontend
       - name: Check the current nightly adapter
         working-directory: backend

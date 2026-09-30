@@ -1,6 +1,6 @@
-# Melhorias propostas para o Acervo
+# Melhorias do Acervo
 
-Este documento apresenta propostas. Apenas a seleção de downloads por playlist foi implementada nesta etapa. As demais ideias precisam de desenvolvimento; a ordem abaixo privilegia o trabalho recorrente com apresentações e repertório.
+O escopo aprovado inclui as melhorias 1–15, 17–19 e 22. Exportação de repertório/programas (16), partituras (20) e marcações de estudo (21) foram excluídas pelo usuário. As tabelas abaixo preservam o planejamento original; consulte [o guia das ferramentas](guia-do-acervo.md) para o funcionamento da implementação.
 
 ## Direção do produto
 

@@ -1,3 +1,4 @@
+import { EnsemblePresets } from '../components/EnsemblePresets';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ExternalLink, Pause, Play, Plus, Sparkles, Trash2, Upload, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
@@ -19,6 +20,7 @@ export function UploadsPage() {
   const [catalogBusy, setCatalogBusy] = useState(false);
   const [privacy, setPrivacy] = useState<Privacy>('private');
   const [ensemble, setEnsemble] = useState('');
+  const [titlePreferences, setTitlePreferences] = useState<UploadItem['titlePreferences']>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [customGenres, setCustomGenres] = useState<Record<string, boolean>>({});
@@ -68,9 +70,14 @@ export function UploadsPage() {
           <label>Filarmônica do lote<NamePicker label="Filarmônica do lote" options={names('ensembles')} value={ensemble} disabled={queue.running || busy} onChange={setEnsemble}/></label>
           <button className="text-action" disabled={queue.running || busy || !queue.items.length} onClick={() => queue.items.filter(item => !item.sessionUrl && item.status !== 'completed').forEach(item => change(item, { ensemble, privacy }))}>Aplicar ao lote</button>
         </div>
-        <div className="upload-select"><button className="primary-action" disabled={queue.running || busy} onClick={() => fileInput.current?.click()}><Plus size={17}/> {queue.items.some(item => !uploadQueue.hasFile(item.id) && item.status !== 'completed') ? 'Selecionar / reconectar arquivos' : 'Selecionar vídeos'}</button><span>Até 50 arquivos · {catalogBusy ? 'Lendo nomes do acervo…' : `${catalog.composers.length} compositores no acervo`}</span><input ref={fileInput} type="file" multiple accept="video/*,.mkv,.mts,.m2ts,.m4v" hidden onChange={event => { uploadQueue.add(Array.from(event.target.files || []), privacy, channelId, ensemble); event.target.value = ''; }}/></div>
+        <div className="upload-select"><button className="primary-action" disabled={queue.running || busy} onClick={() => fileInput.current?.click()}><Plus size={17}/> {queue.items.some(item => !uploadQueue.hasFile(item.id) && item.status !== 'completed') ? 'Selecionar / reconectar arquivos' : 'Selecionar vídeos'}</button><span>Até 50 arquivos · {catalogBusy ? 'Lendo nomes do acervo…' : `${catalog.composers.length} compositores no acervo`}</span><input ref={fileInput} type="file" multiple accept="video/*,.mkv,.mts,.m2ts,.m4v" hidden onChange={event => { uploadQueue.add(Array.from(event.target.files || []), privacy, channelId, ensemble, titlePreferences); event.target.value = ''; }}/></div>
       </>}
     </section>
+    <details className="workspace-panel"><summary>Cadastros e preferências das filarmônicas</summary><EnsemblePresets onApply={payload => {
+      if (queue.running || busy) {setError('Pause o lote antes de aplicar preferências.');return;}
+      setEnsemble(payload.name); setPrivacy(payload.privacy); setTitlePreferences(payload.titlePreferences);
+      queue.items.filter(item => !item.sessionUrl && item.status !== 'completed').forEach(item => change(item, {ensemble:payload.name,privacy:payload.privacy,titlePreferences:payload.titlePreferences}));
+    }}/></details>
     {(error || queue.storageError) && <div role="alert" className="error-note">{error || queue.storageError}</div>}
     {queue.items.length > 0 && <>
       <div className="upload-batch-actions"><span>{pending.length} na fila · {sizeLabel(selectedSize)}</span><button className="text-action" disabled={queue.running || busy || !pending.some(item => !item.sessionUrl)} onClick={preview}>{busy ? <Loader2 className="spin" size={17}/> : <Sparkles size={17}/>} Buscar descrições no acervo</button><button className="text-action" disabled={queue.running || busy} onClick={() => { if (window.confirm('Limpar os rascunhos e o histórico deste lote? Vídeos já enviados continuam no YouTube.')) uploadQueue.clear(); }}><Trash2 size={16}/> Limpar lote</button></div>

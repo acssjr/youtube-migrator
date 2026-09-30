@@ -1,9 +1,14 @@
+import { Mp3Tags } from '../components/Mp3Tags';
+import { DownloadSaveOptions, savePreparedFile } from '../components/DownloadSaveOptions';
+import { DownloadRetry } from '../components/DownloadRetry';
+import { DownloadPackages } from '../components/DownloadPackages';
+import { DownloadQueueControls } from '../components/DownloadQueueControls';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, ExternalLink, Loader2, Music, RefreshCw, Video } from 'lucide-react';
 import { api } from '../services/api';
 import { Account, DownloadJob, DownloadStatus, EmptyVideo } from '../types';
 
-const statuses = { queued: 'Na fila', running: 'Baixando / convertendo', completed: 'Pronto', error: 'Falhou', expired: 'Expirado' };
+const statuses = { cancelled: 'Cancelado', queued: 'Na fila', running: 'Baixando / convertendo', completed: 'Pronto', error: 'Falhou', expired: 'Expirado' };
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Não foi possível concluir a solicitação.';
 
 export function DownloadsPage() {
@@ -26,6 +31,7 @@ export function DownloadsPage() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [channelError, setChannelError] = useState('');
   const [connectionError, setConnectionError] = useState('');
   const [refresh, setRefresh] = useState(0);
@@ -125,7 +131,9 @@ export function DownloadsPage() {
         return;
       }
       const created = await api.downloads.create(sources, format, resolution, source === 'channel' ? channelId : undefined);
-      setJobs(prev => [...created, ...prev]);
+      const reused = created.filter(item => jobs.some(previous => previous.id === item.id)).length;
+      setNotice(reused ? `${reused} arquivo(s) ou trabalho(s) existentes reaproveitados.` : 'Os novos arquivos foram adicionados à fila.');
+      setJobs(prev => [...created, ...prev.filter(item => !created.some(next => next.id === item.id))]);
       setSelected([]); setLinks(''); setRefresh(n => n + 1);
     } catch (e) { setError(errorMessage(e)); }
     finally { setBusy(false); }
@@ -138,7 +146,7 @@ export function DownloadsPage() {
       setJobs(fresh);
       const link = fresh.find(item => item.id === job.id)?.file_url;
       if (!link) throw new Error('O arquivo expirou. Solicite novamente.');
-      window.location.assign(link);
+      await savePreparedFile(fresh.find(item => item.id === job.id)!);
     } catch (e) { setError(errorMessage(e)); }
   };
 
@@ -175,8 +183,14 @@ export function DownloadsPage() {
       <div className="panel-footer"><span>{sources.length} vídeo(s) · preparação em fila</span><button className="primary-action" disabled={busy || !sources.length || loading && source !== 'links' || !status?.available || (status.mode !== 'companion' && !status.engine?.ffmpeg) || !!connectionError} onClick={submit}>{busy ? <Loader2 className="spin" size={17}/> : <Download size={17}/>} {status?.mode === 'companion' ? 'Enviar ao aplicativo local' : `Preparar ${format.toUpperCase()}`}</button></div>
     </section>
     {localLink && <section className="workspace-panel download-controls"><strong>Seleção pronta para baixar neste computador.</strong><a className="primary-action" href={localLink} target="_blank" rel="noreferrer">Abrir seleção no aplicativo local <ExternalLink size={16}/></a><small>Se a página não abrir, execute Iniciar Downloads.cmd e clique no link novamente. Os downloads só começam depois que você clicar em Preparar no aplicativo local.</small></section>}
+    {notice && <div className="notice" role="status">{notice}</div>}
     {(error || connectionError) && <div role="alert" className="error-note">{error || connectionError}<button className="text-action" onClick={() => { setError(''); setRefresh(n => n + 1); }}><RefreshCw size={15}/> Tentar novamente</button></div>}
     {status?.engine && <p className="download-engine-note">{status.engine.ffmpeg ? 'Conversão disponível.' : 'FFmpeg e FFprobe precisam ser instalados no servidor.'} {status.engine.auto_update ? `Motor atualizado automaticamente a cada ${status.engine.update_hours}h.` : 'Atualização automática desativada.'} {status.engine.updating && 'Verificando atualização...'} {status.engine.update_error} {!status.engine.javascript && 'Instale Node.js ou Deno no servidor para ampliar a compatibilidade com o YouTube.'}</p>}
+    <details className="download-option-details"><summary>Destino e nomes dos arquivos</summary><DownloadSaveOptions/></details>
+    <DownloadRetry jobs={jobs} mode={status?.mode || ''} onChanged={() => setRefresh(n => n + 1)} />
+    <DownloadQueueControls jobs={jobs} mode={status?.mode || ''} onChanged={() => setRefresh(n => n + 1)} />
+    <Mp3Tags jobs={jobs} mode={status?.mode || ''} onChanged={() => setRefresh(n => n + 1)}/>
+    <DownloadPackages jobs={jobs} mode={status?.mode || ''} />
     {status?.mode !== 'companion' && <section className="workspace-panel download-history"><div className="panel-top"><div><h2>Seus downloads</h2><p>A preparação continua enquanto você usa as outras ferramentas.</p></div><button className="text-action" onClick={() => setRefresh(n => n + 1)}><RefreshCw size={16}/> Atualizar</button></div>
       {!jobs.length ? <div className="notice">Os arquivos preparados aparecerão aqui.</div> : jobs.map(job => <div className="download-job" key={job.id}><div className="download-job-icon">{job.format === 'mp3' ? <Music size={22}/> : <Video size={22}/>}</div><div className="download-job-info"><strong>{job.title}</strong><small>{job.format.toUpperCase()} · {statuses[job.status]} {job.file_size > 0 && `· ${(job.file_size / 1024 / 1024).toFixed(1)} MB`}</small><p>{job.message}</p>{job.status === 'running' && <progress aria-label={`Progresso de ${job.title}`} max={100} value={job.progress}/>}<a href={`https://www.youtube.com/watch?v=${job.video_id}`} target="_blank" rel="noreferrer">Ver vídeo <ExternalLink size={12}/></a></div>{job.file_url && <button className="primary-action" onClick={() => save(job)}><Download size={16}/> Salvar {job.format.toUpperCase()}</button>}{job.status === 'queued' || job.status === 'running' ? <Loader2 className="spin" size={20}/> : null}</div>)}
     </section>}

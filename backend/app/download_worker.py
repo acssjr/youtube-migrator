@@ -7,6 +7,7 @@ import secrets
 import time
 from urllib.parse import urlencode
 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from pydantic import field_validator
 from sqlmodel import Session, select
@@ -30,6 +31,7 @@ async def lifespan(app):
 
 
 app = FastAPI(title="Acervo Download Worker", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["https://youtube-acervo-aio.vercel.app", "http://localhost:5173", "http://127.0.0.1:5173", "http://127.0.0.1:8011", "http://localhost:8011"], allow_methods=["GET"], allow_headers=[], expose_headers=["Content-Disposition", "Content-Length"])
 PREFIX = "/api/download-worker"
 
 
@@ -91,3 +93,38 @@ def file(job_id: str, expires: int, signature: str, session: Session = Depends(g
     if not job:
         raise HTTPException(404, "Download não encontrado.")
     return media_response(session, job_id, job.owner_id)
+
+
+from app.api.download_controls import install_worker_routes
+from app.api.download_packages import PackageRequest, create_package_for_owner, signed_package_response
+install_worker_routes(app, authorize)
+
+class WorkerPackageRequest(PackageRequest):
+    owner_id: str
+
+    @field_validator("owner_id")
+    @classmethod
+    def validate_owner(cls, value):
+        if not re.fullmatch(r"[A-Za-z0-9_-]{43}", value):
+            raise ValueError("Identificador de navegador inválido.")
+        return value
+
+@app.post(PREFIX + "/packages", dependencies=[Depends(authorize)])
+def create_package(payload: WorkerPackageRequest, session: Session = Depends(get_session)):
+    result = create_package_for_owner(payload, payload.owner_id, session)
+    expires = int(time.time()) + 600
+    query = urlencode({"expires": expires, "signature": sign_file("package:" + result["id"], expires)})
+    result["url"] = f"{settings.DOWNLOAD_PUBLIC_URL.rstrip('/')}{PREFIX}/packages/{result['id']}/file?{query}"
+    return result
+
+@app.get(PREFIX + "/packages/{identifier}/file")
+def package_file(identifier: str, expires: int, signature: str):
+    if not settings.DOWNLOAD_WORKER_TOKEN or expires < time.time() or expires > time.time() + 610:
+        raise HTTPException(403, "Link expirado. Gere o pacote novamente.")
+    if not secrets.compare_digest(signature, sign_file("package:" + identifier, expires)):
+        raise HTTPException(403, "Link de pacote inválido.")
+    return signed_package_response(identifier)
+
+
+from app.api.mp3_tags import install_worker_routes as install_mp3_routes
+install_mp3_routes(app, authorize)
