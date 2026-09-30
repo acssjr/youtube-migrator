@@ -76,7 +76,7 @@ def create(payload: WorkerRequest, session: Session = Depends(get_session)):
 @app.get(PREFIX + "/jobs", dependencies=[Depends(authorize)])
 def jobs(owner_id: str = Query(pattern=r"^[A-Za-z0-9_-]{43}$"), session: Session = Depends(get_session)):
     records = session.exec(select(DownloadJob).where(DownloadJob.owner_id == owner_id)
-                           .order_by(DownloadJob.created_at.desc()).limit(100)).all()
+                           .order_by(DownloadJob.created_at.desc())).all()
     return [serialize(job, signed_file(job)) for job in records]
 
 

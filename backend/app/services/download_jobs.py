@@ -86,9 +86,6 @@ class DownloadQueue:
         if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
             raise HTTPException(503, "Instale FFmpeg e FFprobe no servidor para baixar MP3 e MP4.")
         with self.create_lock:
-            active = session.exec(select(DownloadJob).where(DownloadJob.status.in_(["queued", "running"]))).all()
-            if len(active) + len(sources) > 50 or sum(j.owner_id == owner for j in active) + len(sources) > 10:
-                raise HTTPException(429, "A fila está cheia. Aguarde seus downloads terminarem.")
             jobs = [DownloadJob(id=uuid.uuid4().hex, owner_id=owner, video_id=identifier,
                                 format=kind, resolution=resolution,
                                 expires_at=datetime.utcnow() + timedelta(hours=max(1, settings.DOWNLOAD_RETENTION_HOURS)))
@@ -144,8 +141,7 @@ class DownloadQueue:
     def cleanup(self):
         with Session(engine) as session:
             expired = session.exec(select(DownloadJob).where(DownloadJob.expires_at < datetime.utcnow(),
-                                                            DownloadJob.status != "running",
-                                                            DownloadJob.status != "expired")).all()
+                                                            DownloadJob.status.in_(["completed", "error"]))).all()
             for job in expired:
                 root = job_directory(job.id).resolve()
                 if root.is_relative_to((settings.downloads_path / "exports").resolve()):

@@ -110,12 +110,27 @@ class DownloadsTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/downloads/jobs").json(), [])
         self.assertEqual(self.client.get(f"/api/downloads/jobs/{job_id}/file").status_code, 404)
 
-    def test_queue_limits_and_missing_ffmpeg(self):
-        for _ in range(10):
-            self.assertEqual(self.create().status_code, 202)
-        self.assertEqual(self.create().status_code, 429)
+    def test_large_batch_and_additional_jobs_are_accepted_without_truncating_history(self):
+        identifiers = [f"{i:011d}" for i in range(125)]
+        result = self.create(sources=identifiers)
+        self.assertEqual(result.status_code, 202)
+        self.assertEqual(len(result.json()), 125)
+        self.assertEqual(len(self.client.get("/api/downloads/jobs").json()), 125)
+        self.assertEqual(self.create().status_code, 202)
         with patch("app.services.download_jobs.shutil.which", return_value=None):
             self.assertEqual(self.create().status_code, 503)
+
+    def test_waiting_download_does_not_expire_before_processing(self):
+        job_id = self.create().json()[0]["id"]
+        with Session(self.engine) as db:
+            job = db.get(DownloadJob, job_id)
+            job.expires_at = datetime.utcnow() - timedelta(days=2)
+            db.add(job)
+            db.commit()
+        with patch("app.services.download_jobs.engine", self.engine):
+            DownloadQueue().cleanup()
+        with Session(self.engine) as db:
+            self.assertEqual(db.get(DownloadJob, job_id).status, "queued")
 
     def test_channel_lists_filled_and_empty_videos_and_checks_membership(self):
         resources = [{"id": ID, "snippet": {"title": "Own video", "description": "already filled"}}]

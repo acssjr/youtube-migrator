@@ -25,7 +25,7 @@ COOKIE = "yt_download_owner"
 
 
 class DownloadRequest(BaseModel):
-    sources: list[str] = Field(min_length=1, max_length=10)
+    sources: list[str] = Field(min_length=1)
     format: Literal["mp3", "mp4"]
     resolution: Literal[360, 720, 1080] = 1080
     channel_id: str | None = None
@@ -165,7 +165,7 @@ def list_jobs(request: Request, response: Response, session: Session = Depends(g
     if use_remote():
         return remote("GET", "/jobs", params={"owner_id": owner_id})
     jobs = session.exec(select(DownloadJob).where(DownloadJob.owner_id == owner_id)
-                        .order_by(DownloadJob.created_at.desc()).limit(100)).all()
+                        .order_by(DownloadJob.created_at.desc())).all()
     return [serialize(job, f"/api/downloads/jobs/{job.id}/file") for job in jobs]
 
 

@@ -1,6 +1,6 @@
 # Downloads MP3 e MP4
 
-A ferramenta **Downloads** aceita links de vídeos, Shorts, `youtu.be` e IDs. Também permite escolher vídeos do canal conectado em Configurações. Cada lote aceita até 10 vídeos. MP3 usa 192 kbps; MP4 inclui áudio e oferece limites de 360p, 720p e 1080p. A resolução real depende do que o YouTube disponibiliza. O aplicativo não baixa transmissões ainda ao vivo.
+A ferramenta **Downloads** aceita links de vídeos, Shorts, `youtu.be` e IDs. Também permite escolher vídeos do canal conectado em Configurações. Os lotes e a fila não têm limite fixo de quantidade de vídeos. MP3 usa 192 kbps; MP4 inclui áudio e oferece limites de 360p, 720p e 1080p. A resolução real depende do que o YouTube disponibiliza. O aplicativo não baixa transmissões ainda ao vivo.
 
 Os vídeos do canal são listados por OAuth usando a playlist de uploads e a YouTube Data API, incluindo vídeos que já têm descrição. A seleção é verificada novamente antes de enfileirar. Essa API retorna metadados, não o arquivo de mídia: o download usa o mesmo motor `yt-dlp` dos links. OAuth não é convertido em cookies nem enviado ao worker.
 
@@ -8,7 +8,7 @@ Os vídeos do canal são listados por OAuth usando a playlist de uploads e a You
 
 Instale Python 3.12+, FFmpeg/FFprobe e Node.js 22+ (ou Deno compatível), e execute o aplicativo como descrito no README. A rota `/api/downloads/status` informa se as dependências foram encontradas. Os extras `yt-dlp[default]` incluem os componentes EJS usados pelo motor para compatibilidade atual com o YouTube.
 
-Sem `DOWNLOAD_WORKER_URL`, o backend mantém uma fila no banco local. Um vídeo é processado por vez em um subprocesso separado. As tarefas aguardando na fila sobrevivem a reinícios; uma tarefa interrompida passa a falha e pode ser solicitada novamente. Execute apenas **um processo de backend por banco/volume**. O limite é 10 tarefas ativas por navegador e 50 no servidor. O limite padrão por arquivo é 2 GiB e o tempo padrão por tarefa é uma hora, configuráveis. Garanta espaço em disco para downloads e arquivos temporários.
+Sem `DOWNLOAD_WORKER_URL`, o backend mantém uma fila no banco local. Um vídeo é processado por vez em um subprocesso separado. As tarefas aguardando na fila sobrevivem a reinícios; uma tarefa interrompida passa a falha e pode ser solicitada novamente. Execute apenas **um processo de backend por banco/volume**. A fila aceita todos os vídeos selecionados e processa um por vez; tarefas aguardando não expiram. A retenção de arquivos começa após a conclusão de cada download. O limite padrão por arquivo é 2 GiB e o tempo padrão por tarefa é uma hora, configuráveis. Garanta espaço em disco para downloads e arquivos temporários.
 
 Os arquivos ficam em `downloads/exports/`, e expiram 24 horas após concluir. A fila remove arquivos expirados automaticamente. Um cookie HttpOnly identifica os downloads do navegador. Limpar os cookies impede recuperar seu histórico por esse navegador.
 
