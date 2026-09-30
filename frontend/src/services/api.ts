@@ -38,6 +38,7 @@ export const api = {
   },
   capabilities: () => request<{ local_tools: boolean; downloads: boolean }>('/capabilities'),
   downloads: {
+    playlist: (channelId: string, source: string) => request<{ id: string; title: string; videos: EmptyVideo[]; unavailable_count: number; duplicate_count: number }>(`/downloads/playlist/${encodeURIComponent(channelId)}?source=${encodeURIComponent(source)}`),
     handoff: (sources: string[], format: 'mp3' | 'mp4', resolution: number, channelId?: string) =>
       request<{ url: string }>('/downloads/handoff', { method: 'POST', body: JSON.stringify({ sources, format, resolution, channel_id: channelId }) }),
     status: () => request<DownloadStatus>('/downloads/status'),

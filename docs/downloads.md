@@ -4,6 +4,12 @@ A ferramenta **Downloads** aceita links de vídeos, Shorts, `youtu.be` e IDs. Ta
 
 Os vídeos do canal são listados por OAuth usando a playlist de uploads e a YouTube Data API, incluindo vídeos que já têm descrição. A seleção é verificada novamente antes de enfileirar. Essa API retorna metadados, não o arquivo de mídia: o download usa o mesmo motor `yt-dlp` dos links. OAuth não é convertido em cookies nem enviado ao worker.
 
+## Downloads por playlist
+
+Em **Downloads → Por playlist**, escolha uma playlist do canal conectado ou cole um link/ID de playlist do YouTube e clique em **Carregar vídeos da playlist**. Uma conta conectada é necessária para consultar a API. Playlists públicas de outros canais também podem ser consultadas; playlists privadas dependem do acesso dessa conta.
+
+Todos os vídeos consultáveis aparecem selecionados, na ordem da playlist. Desmarque exceções ou filtre por título. O aplicativo percorre todas as páginas, remove repetições e informa quantos vídeos não puderam ser consultados. Escolha MP3 ou MP4 e clique em Preparar. Consultar um vídeo na API não garante que o motor de download consiga baixar vídeos privados ou restritos.
+
 ## Execução local
 
 Instale Python 3.12+, FFmpeg/FFprobe e Node.js 22+ (ou Deno compatível), e execute o aplicativo como descrito no README. A rota `/api/downloads/status` informa se as dependências foram encontradas. Os extras `yt-dlp[default]` incluem os componentes EJS usados pelo motor para compatibilidade atual com o YouTube.

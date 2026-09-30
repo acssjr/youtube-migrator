@@ -72,6 +72,8 @@
 
 .download-controls { padding:24px 29px; display:grid; gap:18px; }
 .download-toggle { display:flex; gap:8px; flex-wrap:wrap; }
+.playlist-download-summary { display:grid; gap:8px; padding:16px; border:1px solid #e5e1d9; border-radius:9px; background:#faf8f4; font-size:13px; line-height:1.6; }
+.playlist-download-summary span { color:#68747a; font-size:12px; }
 .download-toggle button { display:flex; align-items:center; gap:8px; border:1px solid #dedbd4; border-radius:9px; background:white; padding:11px 15px; font-size:13px; }
 .download-toggle button[aria-pressed=true] { border-color:#bc4335; background:#f5e8df; color:#ad3f32; font-weight:700; }
 .download-label { display:grid; gap:9px; font-size:13px; font-weight:600; }

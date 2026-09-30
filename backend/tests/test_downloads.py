@@ -28,6 +28,24 @@ ID = "BaW_jenozKc"
 
 
 class UrlTests(unittest.TestCase):
+    def test_playlist_paginates_preserves_order_and_removes_duplicates_and_unavailable(self):
+        service = YoutubeService.__new__(YoutubeService)
+        service.youtube = MagicMock()
+        service.youtube.playlists.return_value.list.return_value.execute.return_value = {"items": [{"snippet": {"title": "Retreta"}}]}
+        identifiers = [f"{i:011d}" for i in range(51)]
+        first, second = MagicMock(), MagicMock()
+        first.execute.return_value = {"items": [{"contentDetails": {"videoId": identifier}} for identifier in identifiers[:50]], "nextPageToken": "next"}
+        second.execute.return_value = {"items": [{"contentDetails": {"videoId": identifiers[50]}}, {"contentDetails": {"videoId": identifiers[0]}}]}
+        service.youtube.playlistItems.return_value.list.return_value = first
+        service.youtube.playlistItems.return_value.list_next.side_effect = [second, None]
+        service.youtube.videos.return_value.list.return_value.execute.side_effect = [
+            {"items": [{"id": identifier, "snippet": {"title": identifier}} for identifier in reversed(identifiers[:49])]},
+            {"items": [{"id": identifiers[50], "snippet": {"title": "Last"}}]}]
+        result = service.playlist_download_catalog("PLexample123")
+        self.assertEqual([video["id"] for video in result["videos"]], identifiers[:49] + identifiers[50:])
+        self.assertEqual(result["duplicate_count"], 1)
+        self.assertEqual(result["unavailable_count"], 1)
+
     def test_normalizes_video_only_youtube_sources(self):
         for source in [ID, f"https://youtu.be/{ID}?t=3", f"https://www.youtube.com/watch?v={ID}&list=example",
                        f"https://youtube.com/shorts/{ID}", f"https://m.youtube.com/live/{ID}"]:
@@ -97,6 +115,30 @@ class DownloadsTests(unittest.TestCase):
 
     def create(self, **kwargs):
         return self.client.post("/api/downloads/jobs", json={"sources": [ID], "format": "mp3", **kwargs})
+
+    def test_playlist_catalog_uses_connected_account_and_reports_unavailable_items(self):
+        service = MagicMock()
+        service.playlist_download_catalog.return_value = {"id": "PLexample123", "title": "Retreta", "videos": [
+            {"id": ID, "snippet": {"title": "Performance", "publishedAt": "2026-09-30"}}
+        ], "unavailable_count": 1, "duplicate_count": 2}
+        with patch.object(downloads, "channel_service", return_value=service) as authorization:
+            response = self.client.get("/api/downloads/playlist/own", params={"source": "https://www.youtube.com/playlist?list=PLexample123"})
+        self.assertEqual(response.status_code, 200)
+        authorization.assert_called_once()
+        service.playlist_download_catalog.assert_called_once_with("PLexample123")
+        self.assertEqual(response.json()["videos"][0]["id"], ID)
+        self.assertEqual(response.json()["unavailable_count"], 1)
+        self.assertEqual(response.headers["cache-control"], "no-store")
+
+    def test_playlist_rejects_bad_links_and_handles_missing_or_foreign_account(self):
+        for value in ["https://evil.example/playlist?list=PLexample123", "https://youtube.com:bad/playlist?list=PLexample123", "https://youtube.com/watch?v=" + ID]:
+            self.assertEqual(self.client.get("/api/downloads/playlist/own", params={"source": value}).status_code, 400)
+        with patch.object(downloads, "channel_service", side_effect=downloads.HTTPException(403, "foreign account")):
+            self.assertEqual(self.client.get("/api/downloads/playlist/foreign", params={"source": "PLexample123"}).status_code, 403)
+        service = MagicMock()
+        service.playlist_download_catalog.side_effect = ValueError("Playlist não encontrada.")
+        with patch.object(downloads, "channel_service", return_value=service):
+            self.assertEqual(self.client.get("/api/downloads/playlist/own", params={"source": "PLexample123"}).status_code, 404)
 
     def test_validation_and_browser_isolation(self):
         self.assertEqual(self.create(format="exe").status_code, 422)

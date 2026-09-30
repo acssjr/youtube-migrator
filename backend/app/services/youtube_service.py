@@ -61,6 +61,21 @@ class YoutubeService:
             request = self.youtube.playlists().list_next(request, response)
         return playlists
 
+    def playlist_download_catalog(self, playlist_id: str) -> Dict[str, Any]:
+        playlists = self.youtube.playlists().list(part="snippet", id=playlist_id).execute().get("items", [])
+        if not playlists:
+            raise ValueError("Playlist não encontrada ou sem acesso para esta conta.")
+        identifiers = self.playlist_video_ids(playlist_id)
+        unique = list(dict.fromkeys(identifiers))
+        resources = {}
+        for start in range(0, len(unique), 50):
+            response = self.youtube.videos().list(part="snippet", id=",".join(unique[start:start + 50])).execute()
+            resources.update({video["id"]: video for video in response.get("items", [])})
+        return {"id": playlist_id, "title": playlists[0]["snippet"]["title"],
+                "videos": [resources[identifier] for identifier in unique if identifier in resources],
+                "unavailable_count": sum(identifier not in resources for identifier in unique),
+                "duplicate_count": len(identifiers) - len(unique)}
+
     def upload_video(
         self,
         file_path: str,

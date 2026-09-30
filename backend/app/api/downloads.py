@@ -3,10 +3,11 @@ from datetime import datetime
 import re
 import secrets
 from typing import Literal
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlparse, urlencode, parse_qs
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from googleapiclient.errors import HttpError
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 import requests
@@ -139,6 +140,44 @@ def channel_videos(channel_id: str, request: Request, session: Session = Depends
         raise
     except Exception as error:
         raise HTTPException(502, "Não foi possível consultar os vídeos do canal.") from error
+
+
+def playlist_identifier(source: str) -> str:
+    value = source.strip()
+    if value.startswith(("http://", "https://")):
+        parsed = urlparse(value)
+        if parsed.hostname not in ("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com") or parsed.username or parsed.password or parsed.port not in (None, 80, 443):
+            raise ValueError("Informe um link de playlist do YouTube válido.")
+        value = parse_qs(parsed.query).get("list", [""])[0]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{10,100}", value):
+        raise ValueError("Informe um link ou ID de playlist do YouTube válido.")
+    return value
+
+
+@router.get("/playlist/{channel_id}")
+def playlist_videos(channel_id: str, request: Request, response: Response,
+                    source: str = Query(min_length=1, max_length=2048), session: Session = Depends(get_session)):
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        identifier = playlist_identifier(source)
+    except ValueError as error:
+        raise HTTPException(400, str(error)) from error
+    service = channel_service(channel_id, session, request)
+    try:
+        catalog = service.playlist_download_catalog(identifier)
+        catalog["videos"] = [{"id": video["id"], "title": video["snippet"]["title"],
+                              "published_at": video["snippet"].get("publishedAt", ""),
+                              "thumbnail_url": video["snippet"].get("thumbnails", {}).get("medium", {}).get("url", "")}
+                             for video in catalog["videos"]]
+        return catalog
+    except ValueError as error:
+        raise HTTPException(404, str(error)) from error
+    except HttpError as error:
+        code = error.resp.status
+        raise HTTPException(code if code in (403, 404) else 502,
+                            "Não foi possível consultar a playlist. Confira se ela existe e se esta conta tem acesso.") from error
+    except Exception as error:
+        raise HTTPException(502, "Não foi possível consultar a playlist. Tente novamente.") from error
 
 
 @router.post("/jobs", status_code=202)
