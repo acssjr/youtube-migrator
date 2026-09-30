@@ -26,6 +26,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  uploads: {
+    catalog: (channelId: string) => request<{ composers: string[]; arrangers: string[]; ensembles: string[] }>(`/uploads/${encodeURIComponent(channelId)}/catalog`),
+    authorize: (channelId: string) => request<{ access_token: string }>('/uploads/authorize', { method: 'POST', body: JSON.stringify({ channel_id: channelId }) }),
+    preview: (channelId: string, items: { id: string; title: string; identity: { work: string; composer: string; arranger: string } }[]) =>
+      request<DescriptionProposal[]>('/uploads/preview', { method: 'POST', body: JSON.stringify({ channel_id: channelId, items }) }),
+  },
   capabilities: () => request<{ local_tools: boolean; downloads: boolean }>('/capabilities'),
   downloads: {
     handoff: (sources: string[], format: 'mp3' | 'mp4', resolution: number, channelId?: string) =>

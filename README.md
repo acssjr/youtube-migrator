@@ -1,5 +1,17 @@
 # YouTube Channel Video Migrator
 
+## Uploads em lote
+
+Em **Uploads**, selecione até 50 vídeos do computador e prepare as informações antes de iniciar a fila. O nome do arquivo serve apenas como identificação. O título é montado com gênero opcional, nome da obra, compositor, arranjador opcional e filarmônica, separados por ` — `, sem campos vazios. Compositores, arranjadores e filarmônicas são sugeridos a partir dos títulos existentes no canal; os campos também aceitam novos nomes. A visibilidade e a filarmônica podem ser aplicadas ao lote, e cada vídeo pode ser ajustado individualmente.
+
+**Buscar descrições no acervo** reutiliza as regras da ferramenta Descrições, apresenta a referência e permite editar o texto antes do upload. Os arquivos são enviados diretamente do navegador à API do YouTube em blocos de 8 MiB. A Vercel recebe apenas as consultas de metadados e de autorização. O token de acesso temporário permanece em memória; o token de atualização e o segredo OAuth permanecem no backend.
+
+A fila mantém rascunhos, progresso e URLs de sessão no armazenamento deste navegador. Mantenha a aba aberta durante o envio. Pausas e falhas são retomadas consultando primeiro o progresso confirmado pelo YouTube. Ao recarregar ou reabrir o site, selecione novamente os mesmos arquivos (nome, tamanho e data de modificação), pois o navegador não pode recuperar automaticamente o acesso ao disco. A fila continua se você trocar de ferramenta dentro do site. Falhas interrompem a fila para permitir a correção, e sessões expiradas nunca são reiniciadas automaticamente. As URLs de sessão são temporárias e devem ser tratadas como dados privados.
+
+O YouTube pode restringir a privados os uploads de projetos sem auditoria. A interface mostra a visibilidade retornada pela API e não promete que a solicitação de público/não listado será atendida. “Enviado” significa que o upload foi aceito; o processamento do vídeo continua no YouTube.
+
+Validação: `npm run test:uploads`, `npm run build` em `frontend/`, e `uv run python -m unittest discover -s tests -q` em `backend/`.
+
 ## Downloads de áudio e vídeo
 
 A ferramenta **Downloads** prepara MP3 e MP4 por link e pelos vídeos do canal conectado. Inclui fila, histórico, seleção de qualidade e atualização automática do motor a cada 24 horas, com preservação da versão anterior em caso de falha na instalação. A versão na Vercel conecta a um servidor persistente de downloads; a execução local usa o próprio backend.
@@ -12,7 +24,7 @@ A interface agora abre na ferramenta **Descrições**. Conecte o canal em **Conf
 
 ### Versão web na Vercel
 
-O projeto `youtube-acervo-aio` usa Vercel Services: Vite em `frontend/` e FastAPI em `backend/`. A versão web oferece **Descrições**, conexão de canal e **Downloads** quando um worker estiver configurado. A migração segue somente no aplicativo local porque sua fila atual depende de um processo e armazenamento permanentes.
+O projeto `youtube-acervo-aio` usa Vercel Services: Vite em `frontend/` e FastAPI em `backend/`. A versão web oferece **Descrições**, **Uploads**, conexão de canal e **Downloads** quando um worker estiver configurado. A migração segue somente no aplicativo local porque sua fila atual depende de um processo e armazenamento permanentes.
 
 Para ativar a conexão Google na Vercel, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` como variáveis secretas de produção, além de um `DATABASE_URL` PostgreSQL persistente. Configure `GOOGLE_REDIRECT_URI=https://youtube-acervo-aio.vercel.app/api/auth/callback` e adicione esse mesmo URI ao cliente OAuth no Google Cloud. Faça um novo deploy após alterar as variáveis. Os tokens OAuth ficam criptografados no PostgreSQL; um cookie `HttpOnly`, `Secure` e `SameSite=Lax`, válido por um ano, identifica as contas do navegador. Mantenha a proteção de acesso da Vercel ativa para este uso pessoal.
 
