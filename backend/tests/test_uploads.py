@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from starlette.requests import Request
 
 from app.api.uploads import AuthorizeUpload, PreviewUploads, UploadDraft, authorize, catalog, preview, published_person_name
-from app.api.uploads import CreateBatchPlaylist, create_batch_playlist
+from app.api.uploads import CreateBatchPlaylist, create_batch_playlist, ensemble_videos
 
 
 def browser(origin="https://acervo.test"):
@@ -16,6 +16,18 @@ def browser(origin="https://acervo.test"):
 
 
 class UploadTests(unittest.TestCase):
+    def test_ensemble_search_matches_title_accents_and_ignores_description_mentions(self):
+        service = Mock()
+        service.list_all_video_resources.return_value = [
+            {"id": "a", "snippet": {"title": "Marcha — Sociedade Filarmônica União Sanfelixta"}},
+            {"id": "b", "snippet": {"title": "Dobrado - UNIAO SANFELIXTA"}},
+            {"id": "other", "snippet": {"title": "Marcha — 25 de Março", "description": "União Sanfelixta"}},
+            {"id": "partial", "snippet": {"title": "União SanfelixtaXYZ"}},
+        ]
+        with patch("app.api.uploads.channel_service", return_value=service):
+            result = ensemble_videos("c", "Sociedade Filarmônica União Sanfelixta", browser(), Response(), None)
+        self.assertEqual([item["id"] for item in result], ["a", "b"])
+
     def test_new_playlist_adds_videos_before_final_verification(self):
         service = Mock()
         service.list_playlists.return_value = [{"id": "ref", "snippet": {"title": "Reference"}}]

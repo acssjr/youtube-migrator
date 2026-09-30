@@ -27,6 +27,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   uploads: {
+    ensembleVideos: (channelId: string, ensemble: string) => request<{ id: string; title: string }[]>(`/uploads/${encodeURIComponent(channelId)}/ensemble-videos?ensemble=${encodeURIComponent(ensemble)}`),
     playlists: (channelId: string) => request<{ id: string; title: string; privacy: 'private' | 'public' | 'unlisted' }[]>(`/uploads/${encodeURIComponent(channelId)}/playlists`),
     createPlaylist: (channelId: string, referenceId: string, title: string, videoIds: string[], privacy: 'private' | 'public' | 'unlisted') =>
       request<{ id: string; title: string; url: string; complete: boolean; items: { video_id: string; status: string; message?: string }[] }>('/uploads/playlists', { method: 'POST', body: JSON.stringify({ channel_id: channelId, reference_id: referenceId, title, video_ids: videoIds, privacy }) }),

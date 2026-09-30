@@ -3,6 +3,7 @@
 from urllib.parse import urlparse
 import re
 import json
+import unicodedata
 from typing import Literal
 from loguru import logger
 
@@ -90,6 +91,24 @@ def create_batch_playlist(payload: CreateBatchPlaylist, request: Request, sessio
     confirmed = set(service.playlist_video_ids(playlist_id))
     return {"id": playlist_id, "title": title, "url": f"https://www.youtube.com/playlist?list={playlist_id}",
             "items": results, "complete": all(video_id in confirmed for video_id in payload.video_ids)}
+
+
+@router.get("/{channel_id}/ensemble-videos")
+def ensemble_videos(channel_id: str, ensemble: str, request: Request, response: Response, session: Session = Depends(get_session)):
+    """Find performances credited in titles, never incidental biography mentions."""
+    response.headers["Cache-Control"] = "no-store"
+    service = channel_service(channel_id, session, request)
+
+    def normalized(value):
+        value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()
+        return re.sub(r"[^a-z0-9]+", " ", value).strip()
+
+    name = re.sub(r"^(?:sociedade\s+)?filarmonica\s+", "", normalized(ensemble))
+    if len(name) < 3:
+        raise HTTPException(400, "Informe o nome da filarmônica.")
+    return [{"id": video["id"], "title": video["snippet"]["title"]}
+            for video in service.list_all_video_resources()
+            if f" {name} " in f" {normalized(video['snippet']['title'])} "]
 
 
 def published_person_name(value: str) -> str:
