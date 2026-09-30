@@ -2,9 +2,9 @@ import { CommonStructure, VideoStructure } from '../services/descriptionStructur
 interface Props { common: CommonStructure; video?: VideoStructure; presets: {name:string; socialLinks?:string; institutionalText?:string}[]; onCommon: (patch: Partial<CommonStructure>) => void; onVideo: (patch: Partial<VideoStructure>) => void; onCompose: (all: boolean) => void; onSave: () => void; onSaveInstitution: () => void; disabled: boolean }
 export function DescriptionStructureFields({common,video,presets,onCommon,onVideo,onCompose,onSave,onSaveInstitution,disabled}:Props) {
   return <section className="workspace-panel description-structure" aria-label="Estrutura da descrição">
-    <div className="panel-top"><div><h2>Estrutura da descrição</h2><p>Personalize os blocos do lote. Eles também funcionam sem referência da música. Confira o resultado antes de publicar.</p></div></div>
+    <div className="panel-top"><div><h2>Estrutura da descrição</h2><p>As redes da banda que toca aparecem primeiro; depois, as da 25 de Março. Personalize os blocos mesmo sem referência da música. Confira o resultado antes de publicar.</p></div></div>
     <fieldset disabled={disabled}>
-      <h3>Redes no início · instituição principal</h3>
+      <h3>Redes da instituição principal</h3>
       <div className="structure-grid"><label>Nome da instituição principal<input value={common.mainName} onChange={e=>onCommon({mainName:e.target.value})}/></label><label>Instagram da instituição principal<input value={common.mainInstagram} placeholder="@usuario ou link do Instagram" onChange={e=>onCommon({mainInstagram:e.target.value})}/></label></div>
       <label>Chamada e outras redes da instituição principal<textarea rows={3} value={common.mainFollow} onChange={e=>onCommon({mainFollow:e.target.value})}/><small>Texto publicado sugerido, editável. Ao informar o Instagram acima, a chamada será montada com o nome e o link; acrescente outras redes neste texto.</small></label>
       <label>Playlists e projetos · bloco comum do lote<textarea rows={6} value={common.playlists} placeholder="Cole as chamadas e os links das playlists, no formato que deseja usar." onChange={e=>onCommon({playlists:e.target.value})}/></label>

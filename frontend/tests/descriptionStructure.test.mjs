@@ -1,12 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {composeStructure,initialVideoStructure,baseStructure,instagramUrl} from '../src/services/descriptionStructure.mjs';
-test('complete structure without a music reference, main then guest and correct archive',()=>{
+test('complete structure without a music reference, performing guest first then main and correct archive',()=>{
  const common={...baseStructure(),mainInstagram:'@principal',playlists:'🎺 Projeto Retreta\n\n1️⃣ https://www.youtube.com/playlist?list=abc'};
  const guest={...initialVideoStructure({ensemble:'Sociedade Filarmônica União Sanfelixta'}),instagram:'convidada',history:'Sobre a instituição: TEXTO EXATO.'};
  const text=composeStructure(common,guest);
- assert.ok(text.startsWith('Siga a Sociedade Filarmônica 25 de Março'));
- assert.ok(text.indexOf('/principal/')<text.indexOf('/convidada/'));
+ assert.ok(text.startsWith('Siga a Sociedade Filarmônica União Sanfelixta'));
+ assert.ok(text.indexOf('/convidada/')<text.indexOf('/principal/'));
  assert.ok(text.includes('Esta partitura pertence ao acervo da Sociedade Filarmônica União Sanfelixta.'));
  assert.ok(text.includes(guest.history));assert.ok(text.endsWith(common.playlists));
  assert.ok(!text.includes('Sobre o compositor'));
@@ -32,4 +32,12 @@ test('emoji follow call adjusts the chosen name and preserves other networks',()
  const text=composeStructure(common,{...initialVideoStructure(),includeArchive:false});
  assert.ok(text.startsWith('👉🏻 Siga a Filarmônica Outra no Instagram e acompanhe as novidades:'));
  assert.ok(text.includes('https://www.instagram.com/outra/'));assert.ok(text.includes('Facebook: https://facebook.com/25demarco'));
+});
+
+test('25 de Março performance has only its own follow block',()=>{
+ const common={...baseStructure(),mainInstagram:'filarmonica25demarco'};
+ const video=initialVideoStructure({ensemble:'Sociedade Filarmônica 25 de Março'});
+ const text=composeStructure(common,video);
+ assert.ok(text.startsWith('Siga a Sociedade Filarmônica 25 de Março'));
+ assert.equal(text.match(/Siga a /g).length,1);
 });

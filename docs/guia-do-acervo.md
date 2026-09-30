@@ -49,7 +49,7 @@ Implementadas as melhorias 1–15, 17–19 e 22. Exportação de repertório/pro
 
 Na prévia de Descrições, abra **Personalizar redes, acervo, história e playlists**. A estrutura é sugerida mesmo sem referência segura da música. O texto sobre obra, compositor ou arranjador só entra quando encontrado ou preenchido por você.
 
-Ordem dos blocos: redes da instituição principal; redes da convidada, se ativadas; texto musical; acervo da partitura; história da instituição; playlists e projetos. As redes e playlists publicadas da 25 de Março são sugeridas como ponto de partida. Você pode editar tudo.
+Ordem dos blocos: redes da banda que toca (convidada, se ativadas); redes da instituição principal (25 de Março); texto musical; acervo da partitura; história da instituição; playlists e projetos. As redes e playlists publicadas da 25 de Março são sugeridas como ponto de partida. Você pode editar tudo.
 
 Informe Instagram por @usuario ou URL. Outras redes permanecem no campo da chamada. A instituição do vídeo e o acervo são sugeridos pelo título; confirme a propriedade da partitura e corrija quando for diferente. A história é copiada do cadastro ou de um texto publicado da mesma instituição, sem reescrever.
 

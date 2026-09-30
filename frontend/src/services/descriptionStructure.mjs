@@ -27,5 +27,6 @@ export function composeStructure(common, video) {
   const main = followBlock(common.mainName, common.mainInstagram, common.mainFollow);
   const guest = video.guest ? followBlock(video.ensemble, video.instagram, video.socialText) : '';
   if (video.includeArchive && !video.archive.trim()) throw new Error('Preencha a instituição do acervo ou desmarque esse bloco.');
-  return [main, guest, video.body, video.includeArchive ? `© Esta partitura pertence ao acervo da ${video.archive.trim()}.` : '', video.history, common.playlists].filter(x => x?.trim()).join('\n\n');
+  const follows = video.ensemble && !/25 de mar[çc]o/i.test(video.ensemble) ? [guest, main] : [main, guest];
+  return [...follows, video.body, video.includeArchive ? `© Esta partitura pertence ao acervo da ${video.archive.trim()}.` : '', video.history, common.playlists].filter(x => x?.trim()).join('\n\n');
 }
