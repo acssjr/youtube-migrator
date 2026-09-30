@@ -51,11 +51,33 @@ def paragraphs(description: str) -> list[str]:
 
 
 def is_footer_block(paragraph: str) -> bool:
+    if is_institution_block(paragraph):
+        return False
     if re.search(r"https?://|youtube\.com/playlist|youtu\.be/", paragraph, re.I):
         return True
     plain = normalize(paragraph)
     return bool(re.search(r"^(?:playlists?\b|assista (?:tambem|mais)\b|musica no casarao\b|projeto retreta\b|"
                           r"(?:apaixonado por musica de filarmonica|explore minhas playlists|projeto musica no casarao)\b)", plain))
+
+
+def is_institution_block(paragraph: str) -> bool:
+    return bool(re.match(r"^sobre a (?:sociedade )?filarmonica\b", normalize(paragraph)))
+
+
+def institution_passage(description: str, ensemble: str) -> str:
+    """Reuse the institution's published text, without an age that goes stale."""
+    if not ensemble:
+        return ""
+    for paragraph in paragraphs(description):
+        plain = normalize(paragraph)
+        if not any(plain.startswith(prefix + ensemble + " ") for prefix in ("sobre a ", "sobre a sociedade ")):
+            continue
+        paragraph = re.sub(r"(?m)^\s*_{3,}\s*$", "", paragraph).strip()
+        paragraph = re.sub(r"\bCom\s+(?:mais\s+de\s+)?\d+\s+anos\s+de\s+hist[oó]ria\s*,", "Ao longo de sua história,", paragraph, flags=re.I)
+        paragraph = re.sub(r"\bCom\s+(?:mais\s+de\s+)?\d+\s+anos\s+de\s+hist[oó]ria\s*\.", "", paragraph, flags=re.I).strip()
+        if paragraph and not paragraph.endswith(":") and len(paragraph) <= 2000 and not event_specific(paragraph):
+            return paragraph
+    return ""
 
 
 def current_links(description: str, ensemble: str = "") -> str:
@@ -171,6 +193,7 @@ def clean_work_body(description: str, composer: str) -> str:
         paragraph = re.sub(r"(?m)^\s*_{3,}\s*$", "", paragraph).strip()
         plain = normalize(paragraph)
         if (not paragraph or paragraph.lstrip().startswith("#")
+                or is_institution_block(paragraph)
                 or len(re.findall(r"#\w+", paragraph)) >= 3
                 or re.search(r"^(?:oportunidade para|clique no link para se inscrever|sobre a sociedade filarmonica|"
                              r"apaixonado por musica de filarmonica|projeto musica no casarao)\b", plain)):
@@ -213,8 +236,8 @@ def published(video: dict) -> str:
 
 def ensemble_marker(title: str) -> str:
     plain = normalize(title)
-    match = re.search(r"filarmonica\s+(?:\d+\s+de\s+[a-z]+|[a-z]+(?:\s+[a-z]+){0,2})", plain)
-    return match.group(0) if match else ""
+    match = re.search(r"(?:filarmonica|s\s+f|sf)\s+(\d+\s+de\s+[a-z]+|[a-z]+(?:\s+[a-z]+){0,2})", plain)
+    return "filarmonica " + match.group(1) if match else ""
 
 
 def propose(target: dict, sources: list[dict], overrides: dict | None = None,
@@ -223,6 +246,8 @@ def propose(target: dict, sources: list[dict], overrides: dict | None = None,
     references = [v for v in sources if v.get("id") != target.get("id") and v.get("snippet", {}).get("description", "").strip()]
     references.sort(key=published, reverse=True)
     ensemble = ensemble_marker(target["snippet"]["title"])
+    institution_reference = next(((candidate, passage) for candidate in references
+                                  if (passage := institution_passage(candidate["snippet"]["description"], ensemble))), None)
     link_references = [v for v in references if current_links(v["snippet"]["description"], ensemble)]
     if ensemble:
         link_references = [v for v in link_references if ensemble in normalize(v["snippet"]["title"])]
@@ -290,7 +315,8 @@ def propose(target: dict, sources: list[dict], overrides: dict | None = None,
     footer_blocks = paragraphs(footer)
     follow_blocks = [paragraph for paragraph in footer_blocks if is_follow_block(paragraph)]
     playlist_blocks = [paragraph for paragraph in footer_blocks if not is_follow_block(paragraph)]
-    result = "\n\n".join(p for p in (*follow_blocks, body, *playlist_blocks) if p).strip()
+    institution = institution_reference[1] if institution_reference else ""
+    result = "\n\n".join(p for p in (*follow_blocks, body, institution, *playlist_blocks) if p).strip()
     if not body or not result or len(result) > 5000:
         kind, result = "none", ""
     return {
@@ -299,5 +325,6 @@ def propose(target: dict, sources: list[dict], overrides: dict | None = None,
         "description": result, "match_type": kind,
         "source": {"id": source["id"], "title": source["snippet"]["title"]} if source and kind != "none" else None,
         "links_source": {"id": newest["id"], "title": newest["snippet"]["title"]} if footer and newest else None,
+        "institution_source": {"id": institution_reference[0]["id"], "title": institution_reference[0]["snippet"]["title"]} if institution and result else None,
         "reason": "Revise a correspondência e o texto antes de aplicar." if result else "Não foi encontrada uma descrição confiável para compor este vídeo.",
     }

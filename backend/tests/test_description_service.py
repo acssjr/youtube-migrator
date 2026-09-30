@@ -211,6 +211,34 @@ class DescriptionTests(unittest.TestCase):
         for excluded in ("inscreva-se", "157 anos", "2024 [40", "#anos30"):
             self.assertNotIn(excluded, result["description"])
 
+    def test_institution_is_reused_independently_from_work_and_playlist_references(self):
+        target = video("target", "Marcha Nova — Tertuliano Santos — Sociedade Filarmônica 25 de Março", "", "2026")
+        bio = video("bio", "Outra obra — Tertuliano Santos", "Sobre o compositor: Tertuliano Santos foi maestro.", "2026")
+        text = "🌟 Sobre a Sociedade Filarmônica 25 de Março: Fundada em 1868 em Feira de Santana. Com mais de 157 anos de história, a instituição atua na comunidade."
+        own = video("own", "A Banda — Sociedade Filarmônica 25 de Março", text, "2025")
+        guest = video("guest", "Outra obra — Filarmônica Vitória", "Sobre a Sociedade Filarmônica Vitória: Visitou a Filarmônica 25 de Março.", "2026")
+        result = propose(target, [target, bio, own, guest])
+        self.assertIn("Fundada em 1868", result["description"])
+        self.assertIn("Ao longo de sua história, a instituição", result["description"])
+        self.assertNotIn("157 anos", result["description"])
+        self.assertNotIn("Visitou", result["description"])
+        self.assertEqual(result["institution_source"]["id"], "own")
+        self.assertEqual(result["source"]["id"], "bio")
+
+    def test_institution_is_not_duplicated_when_same_work_contains_it(self):
+        target = video("target", "Marcha Nova — Tertuliano Santos — Sociedade Filarmônica 25 de Março", "", "2026")
+        text = "Sobre o compositor: Tertuliano Santos foi maestro.\n\nSobre a Sociedade Filarmônica 25 de Março: Fundada em 1868.\n\nPlaylists: https://youtube.com/current"
+        source = video("source", target["snippet"]["title"], text, "2025")
+        result = propose(target, [target, source])
+        self.assertEqual(result["description"].count("Sobre a Sociedade Filarmônica"), 1)
+        self.assertLess(result["description"].index("Sobre a Sociedade"), result["description"].index("Playlists"))
+
+    def test_institution_matches_abbreviated_ensemble_title(self):
+        target = video("target", "Obra Nova — Tertuliano Santos — S.F. 25 de Março", "", "2026")
+        source = video("source", "Outra obra — Tertuliano Santos — Sociedade Filarmônica 25 de Março",
+                       "Sobre o compositor: Tertuliano Santos foi maestro.\n\nSobre a Sociedade Filarmônica 25 de Março: Fundada em 1868.", "2025")
+        self.assertIn("Fundada em 1868", propose(target, [target, source])["description"])
+
 
 if __name__ == "__main__":
     unittest.main()
