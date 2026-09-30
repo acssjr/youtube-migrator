@@ -6,6 +6,37 @@ export interface Account {
   created_at: string;
 }
 
+export interface DownloadJob {
+  id: string;
+  video_id: string;
+  title: string;
+  format: 'mp3' | 'mp4';
+  resolution: number;
+  status: 'queued' | 'running' | 'completed' | 'error' | 'expired';
+  progress: number;
+  message: string;
+  file_size: number;
+  expires_at: string;
+  file_url: string | null;
+}
+
+export interface DownloadStatus {
+  available: boolean;
+  mode: 'local' | 'remote' | 'companion';
+  retention_hours: number;
+  engine: {
+    version: string;
+    updating: boolean;
+    last_check: string | null;
+    update_error: string;
+    auto_update: boolean;
+    update_hours: number;
+    channel: string;
+    ffmpeg: boolean;
+    javascript: boolean;
+  } | null;
+}
+
 export interface EmptyVideo {
   id: string;
   title: string;

@@ -7,11 +7,12 @@ from loguru import logger
 from app.config.config import settings
 from app.services.cloud_session import cloud_mode
 from app.database.db import init_db
-from app.api import auth, settings as settings_api, descriptions
+from app.api import auth, settings as settings_api, descriptions, downloads
 
 if not cloud_mode():
     from app.api import channels, migrations, logs
     from app.services.queue_service import QueueService
+    from app.services.download_jobs import download_queue
 
 # Configure Loguru to write to separate logs files based on context/level
 if not cloud_mode():
@@ -73,6 +74,12 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(settings_api.router, prefix="/api")
 app.include_router(descriptions.router, prefix="/api")
+app.include_router(downloads.router, prefix="/api")
+
+@app.get("/api/capabilities")
+def capabilities():
+    return {"local_tools": not cloud_mode(), "downloads": True}
+
 if not cloud_mode():
     app.include_router(channels.router, prefix="/api")
     app.include_router(migrations.router, prefix="/api")
@@ -90,6 +97,8 @@ def on_startup():
     logger.info("Starting background migration queue...")
     queue = QueueService.get_instance()
     queue.start()
+    if not settings.DOWNLOAD_WORKER_URL:
+        download_queue.start()
 
 @app.on_event("shutdown")
 def on_shutdown():
@@ -97,6 +106,7 @@ def on_shutdown():
         return
     logger.info("Shutting down background queue...")
     QueueService.get_instance().stop()
+    download_queue.stop()
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse

@@ -61,3 +61,20 @@ class AppSetting(SQLModel, table=True):
     
     key: str = Field(primary_key=True)
     value: str
+
+
+class DownloadJob(SQLModel, table=True):
+    __tablename__ = "download_jobs"
+
+    id: str = Field(primary_key=True)
+    owner_id: str = Field(index=True)
+    video_id: str
+    title: str = ""
+    format: str
+    resolution: int = 1080
+    status: str = Field(default="queued", index=True)
+    progress: float = 0
+    message: str = "Aguardando na fila."
+    file_size: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime

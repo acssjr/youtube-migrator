@@ -1,14 +1,20 @@
 # YouTube Channel Video Migrator
 
+## Downloads de áudio e vídeo
+
+A ferramenta **Downloads** prepara MP3 e MP4 por link e pelos vídeos do canal conectado. Inclui fila, histórico, seleção de qualidade e atualização automática do motor a cada 24 horas, com preservação da versão anterior em caso de falha na instalação. A versão na Vercel conecta a um servidor persistente de downloads; a execução local usa o próprio backend.
+
+Veja [configuração, atualização e API de downloads](docs/downloads.md), incluindo `Dockerfile.worker`, volumes persistentes e variáveis de ambiente para a Vercel.
+
 ## Descrições em lote
 
 A interface agora abre na ferramenta **Descrições**. Conecte o canal em **Configurações**, escolha até 50 vídeos sem descrição e clique em **Buscar descrições**. O aplicativo percorre todo o histórico de uploads do canal pela YouTube Data API, apresenta uma sugestão por vídeo e mostra as fontes usadas. Você pode corrigir a obra, o compositor e o arranjador antes da busca, além de editar cada texto antes de publicar o lote.
 
 ### Versão web na Vercel
 
-O projeto `youtube-acervo-aio` usa Vercel Services: Vite em `frontend/` e FastAPI em `backend/`. A versão web oferece **Descrições** e conexão de canal. A migração segue somente no aplicativo local porque sua fila atual depende de um processo e armazenamento permanentes.
+O projeto `youtube-acervo-aio` usa Vercel Services: Vite em `frontend/` e FastAPI em `backend/`. A versão web oferece **Descrições**, conexão de canal e **Downloads** quando um worker estiver configurado. A migração segue somente no aplicativo local porque sua fila atual depende de um processo e armazenamento permanentes.
 
-Para ativar a conexão Google na Vercel, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` como variáveis secretas de produção. Configure `GOOGLE_REDIRECT_URI=https://youtube-acervo-aio.vercel.app/api/auth/callback` e adicione esse mesmo URI ao cliente OAuth no Google Cloud. Faça um novo deploy após alterar as variáveis. Na versão web, a sessão OAuth fica criptografada em cookie `HttpOnly`, `Secure` e `SameSite=Lax` por 30 dias; ela não é gravada no SQLite da função. Mantenha a proteção de acesso da Vercel ativa para este uso pessoal.
+Para ativar a conexão Google na Vercel, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` como variáveis secretas de produção, além de um `DATABASE_URL` PostgreSQL persistente. Configure `GOOGLE_REDIRECT_URI=https://youtube-acervo-aio.vercel.app/api/auth/callback` e adicione esse mesmo URI ao cliente OAuth no Google Cloud. Faça um novo deploy após alterar as variáveis. Os tokens OAuth ficam criptografados no PostgreSQL; um cookie `HttpOnly`, `Secure` e `SameSite=Lax`, válido por um ano, identifica as contas do navegador. Mantenha a proteção de acesso da Vercel ativa para este uso pessoal.
 
 O preenchimento segue esta ordem:
 

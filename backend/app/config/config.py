@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -9,6 +9,16 @@ class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "127.0.0.1"
     VERCEL: str = ""
+    DOWNLOAD_WORKER_URL: str = ""
+    DOWNLOAD_WORKER_TOKEN: str = ""
+    DOWNLOAD_PUBLIC_URL: str = ""
+    DOWNLOAD_AUTO_UPDATE: bool = True
+    DOWNLOAD_UPDATE_HOURS: int = 24
+    DOWNLOAD_UPDATE_CHANNEL: Literal["stable", "nightly"] = "nightly"
+    DOWNLOAD_RETENTION_HOURS: int = 24
+    DOWNLOAD_MAX_BYTES: int = 2 * 1024 * 1024 * 1024
+    DOWNLOAD_TIMEOUT_SECONDS: int = 3600
+    DOWNLOAD_COOKIES_FILE: str = ""
     
     # Database
     DATABASE_URL: str = "sqlite:///database/youtube_migrator.db"

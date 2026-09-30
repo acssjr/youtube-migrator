@@ -1,4 +1,4 @@
-import { Account, Task, AppSettings, DiscoveryResponse, EmptyVideo, DescriptionProposal, ApplyResult } from '../types';
+import { Account, Task, AppSettings, DiscoveryResponse, EmptyVideo, DescriptionProposal, ApplyResult, DownloadJob, DownloadStatus } from '../types';
 
 const BASE_URL = '/api';
 
@@ -15,7 +15,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     const errText = await response.text();
     let message = errText;
-    try { message = JSON.parse(errText).detail || errText; } catch { /* plain-text response */ }
+    try {
+      const detail = JSON.parse(errText).detail;
+      message = Array.isArray(detail) ? detail.map(item => (item.msg || 'Confira os dados enviados.').replace(/^Value error, /, '')).join(' ') : detail || errText;
+    } catch { /* plain-text response */ }
     throw new Error(message || 'Não foi possível concluir a solicitação.');
   }
 
@@ -23,6 +26,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  capabilities: () => request<{ local_tools: boolean; downloads: boolean }>('/capabilities'),
+  downloads: {
+    handoff: (sources: string[], format: 'mp3' | 'mp4', resolution: number, channelId?: string) =>
+      request<{ url: string }>('/downloads/handoff', { method: 'POST', body: JSON.stringify({ sources, format, resolution, channel_id: channelId }) }),
+    status: () => request<DownloadStatus>('/downloads/status'),
+    channel: (channelId: string) => request<EmptyVideo[]>(`/downloads/channel/${encodeURIComponent(channelId)}`),
+    jobs: () => request<DownloadJob[]>('/downloads/jobs'),
+    create: (sources: string[], format: 'mp3' | 'mp4', resolution: number, channelId?: string) =>
+      request<DownloadJob[]>('/downloads/jobs', { method: 'POST', body: JSON.stringify({ sources, format, resolution, channel_id: channelId }) }),
+  },
   descriptions: {
     empty: (channelId: string) => request<EmptyVideo[]>(`/descriptions/${encodeURIComponent(channelId)}/empty`),
     preview: (channelId: string, videoIds: string[], overrides: Record<string, { work: string; composer: string; arranger: string }>) =>

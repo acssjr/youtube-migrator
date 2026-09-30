@@ -1,5 +1,5 @@
 # Stage 1: Build the React frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:22-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
@@ -8,6 +8,7 @@ RUN npm run build
 
 # Stage 2: Run the Python backend and serve the frontend
 FROM python:3.12-slim
+COPY --from=frontend-builder /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 
 # Install system dependencies (ffmpeg is required by yt-dlp)

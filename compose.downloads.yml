@@ -1,0 +1,22 @@
+services:
+  download-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      VERCEL: ""
+      DEBUG: "false"
+      DATABASE_URL: sqlite:///database/youtube_migrator.db
+      DOWNLOADS_DIR: downloads
+    # Put an HTTPS reverse proxy in front, or deploy Dockerfile.worker on a hosting service.
+    ports:
+      - "127.0.0.1:8002:8000"
+    volumes:
+      - download-files:/app/downloads
+      - download-database:/app/database
+
+volumes:
+  download-files:
+  download-database:

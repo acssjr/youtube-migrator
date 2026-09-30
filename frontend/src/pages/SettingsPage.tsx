@@ -17,11 +17,13 @@ export function SettingsPage() {
     theme: 'dark',
   });
   const [loading, setLoading] = useState(false);
+  const [localTools, setLocalTools] = useState(!import.meta.env.PROD);
   const [authStatus, setAuthStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
 
   useEffect(() => {
     loadSettings();
     loadAccounts();
+    api.capabilities().then(data => setLocalTools(data.local_tools)).catch(() => {});
     
     // Check URL params for authentication callback status
     const params = new URLSearchParams(window.location.search);
@@ -163,7 +165,7 @@ export function SettingsPage() {
         </Card>
 
         {/* Configurations Card */}
-        {!import.meta.env.PROD && <Card>
+        {localTools && <Card>
           <CardHeader>
             <CardTitle>Configurações Globais</CardTitle>
             <CardDescription>

@@ -1,0 +1,11 @@
+.git
+.env*
+client_secret.json
+backend/.venv
+**/__pycache__
+frontend/node_modules
+frontend/dist
+/downloads
+/database
+/tokens
+/logs
