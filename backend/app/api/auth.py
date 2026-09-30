@@ -19,6 +19,15 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 router = APIRouter(prefix="/auth", tags=["auth"])
 auth_service = AuthService()
 
+@router.get("/error")
+def oauth_error():
+    """Recover old local authorization URLs in the settings screen."""
+    import os
+    frontend = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    target = "/" if cloud_mode() else f"{frontend}/settings"
+    query = urlencode({"auth": "error", "reason": "A conexão Google não está configurada. Configure as credenciais OAuth para esta instalação."})
+    return RedirectResponse(url=f"{target}?{query}")
+
 @router.get("/url", response_model=AuthURLResponse)
 def get_auth_url(account_name: str = Query(..., description="Name for this YouTube account profile")):
     """Get Google OAuth URL to authenticate a YouTube channel."""
@@ -27,7 +36,10 @@ def get_auth_url(account_name: str = Query(..., description="Name for this YouTu
         raise HTTPException(503, "A integração Google ainda não foi configurada neste deploy.")
     if cloud_mode() and not settings.DATABASE_URL.startswith("postgres"):
         raise HTTPException(503, "O banco de contas ainda não foi configurado neste deploy.")
-    url = auth_service.get_auth_url(account_name)
+    try:
+        url = auth_service.get_auth_url(account_name)
+    except ValueError as error:
+        raise HTTPException(503, str(error)) from error
     if cloud_mode():
         nonce = secrets.token_urlsafe(24)
         parsed = urlparse(url)

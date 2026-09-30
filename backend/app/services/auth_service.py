@@ -75,7 +75,7 @@ class AuthService:
             return authorization_url
         except Exception as e:
             logger.error(f"Error generating OAuth URL: {e}")
-            return f"http://localhost:8000/api/auth/error?reason=no_credentials"
+            raise ValueError("Não foi possível iniciar a conexão com o Google. Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET ou client_secret.json.") from e
 
     def get_credentials_from_code(self, code: str, state_json: str) -> Dict[str, Any]:
         """Exchange auth code for user credentials and get channel details."""

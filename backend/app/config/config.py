@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRETS_FILE: str = "client_secret.json"
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(Path(__file__).resolve().parents[3] / ".env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
