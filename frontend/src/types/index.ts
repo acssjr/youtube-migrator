@@ -45,6 +45,7 @@ export interface EmptyVideo {
 }
 
 export interface DescriptionProposal {
+  structure?: { ensemble: string; history: string; social_text: string; main_follow: string; playlists: string; body: string; source: {id: string; title: string} | null };
   video_id: string;
   title: string;
   published_at: string;

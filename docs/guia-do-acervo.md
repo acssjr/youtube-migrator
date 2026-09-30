@@ -43,3 +43,16 @@ Os arquivos preparados têm retenção temporária. Salve os arquivos ou o pacot
 ## Escopo desta etapa
 
 Implementadas as melhorias 1–15, 17–19 e 22. Exportação de repertório/programas (16), partituras (20) e marcações de estudo (21) ficaram fora do escopo solicitado.
+
+
+## Descrições completas para bandas convidadas
+
+Na prévia de Descrições, abra **Personalizar redes, acervo, história e playlists**. A estrutura é sugerida mesmo sem referência segura da música. O texto sobre obra, compositor ou arranjador só entra quando encontrado ou preenchido por você.
+
+Ordem dos blocos: redes da instituição principal; redes da convidada, se ativadas; texto musical; acervo da partitura; história da instituição; playlists e projetos. As redes e playlists publicadas da 25 de Março são sugeridas como ponto de partida. Você pode editar tudo.
+
+Informe Instagram por @usuario ou URL. Outras redes permanecem no campo da chamada. A instituição do vídeo e o acervo são sugeridos pelo título; confirme a propriedade da partitura e corrija quando for diferente. A história é copiada do cadastro ou de um texto publicado da mesma instituição, sem reescrever.
+
+**Montar descrição deste vídeo** recompõe a prévia com os campos. **Aplicar estrutura a todos os vídeos do lote** usa o bloco comum e os dados próprios de cada vídeo. Redes e história editadas são compartilhadas entre as prévias da mesma filarmônica. Os textos musicais continuam individuais. Alterações manuais feitas diretamente na descrição final serão substituídas ao recompor; use o campo de texto musical para conservar esses trechos.
+
+**Salvar estrutura para próximos lotes** guarda a instituição principal e playlists para o canal. **Salvar redes e história desta filarmônica** guarda o cadastro institucional para novos lotes e uploads. Nada é publicado ao salvar ou montar; revise e use o botão Publicar.

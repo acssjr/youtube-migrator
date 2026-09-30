@@ -77,7 +77,9 @@ def preview(payload: PreviewRequest, request: Request, session: Session = Depend
         from app.models.acervo_models import AcervoRecord
         from app.services.approved_texts import enrich_proposal
         records = session.exec(select(AcervoRecord).where(AcervoRecord.owner_id == acervo_owner(request), AcervoRecord.kind == "approved_text")).all()
-        return [enrich_proposal(propose(by_id[video_id], videos, payload.overrides.get(video_id).model_dump() if video_id in payload.overrides else None, playlists), records)
+        from app.services.description_structure import attach_structure
+        presets = session.exec(select(AcervoRecord).where(AcervoRecord.owner_id == acervo_owner(request), AcervoRecord.kind == "ensemble_preset")).all()
+        return [attach_structure(enrich_proposal(propose(by_id[video_id], videos, payload.overrides.get(video_id).model_dump() if video_id in payload.overrides else None, playlists), records), videos, playlists, presets)
                 for video_id in payload.video_ids]
     except HTTPException:
         raise
