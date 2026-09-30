@@ -40,7 +40,7 @@ export const api = {
   downloads: {
     playlist: (channelId: string, source: string) => request<{ id: string; title: string; videos: EmptyVideo[]; unavailable_count: number; duplicate_count: number }>(`/downloads/playlist/${encodeURIComponent(channelId)}?source=${encodeURIComponent(source)}`),
     handoff: (sources: string[], format: 'mp3' | 'mp4', resolution: number, channelId?: string) =>
-      request<{ url: string }>('/downloads/handoff', { method: 'POST', body: JSON.stringify({ sources, format, resolution, channel_id: channelId }) }),
+      request<{ url: string; launch_url: string }>('/downloads/handoff', { method: 'POST', body: JSON.stringify({ sources, format, resolution, channel_id: channelId }) }),
     status: () => request<DownloadStatus>('/downloads/status'),
     channel: (channelId: string) => request<EmptyVideo[]>(`/downloads/channel/${encodeURIComponent(channelId)}`),
     jobs: () => request<DownloadJob[]>('/downloads/jobs'),

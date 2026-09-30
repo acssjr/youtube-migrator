@@ -5,6 +5,7 @@ import secrets
 from typing import Literal
 from urllib.parse import urlparse, urlencode, parse_qs
 import json
+import base64
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from googleapiclient.errors import HttpError
@@ -125,7 +126,13 @@ def handoff(payload: DownloadRequest, request: Request, session: Session = Depen
             raise HTTPException(403, "A seleção contém vídeo externo ao canal conectado.")
     # Browser navigation only; no OAuth data, network access to localhost or automatic execution.
     transfer = {"sources": payload.sources, "format": payload.format, "resolution": payload.resolution}
-    return {"url": "http://127.0.0.1:8011/downloads#" + urlencode({"transfer": json.dumps(transfer)})}
+    transfer["autostart"] = True
+    encoded = base64.urlsafe_b64encode(json.dumps(transfer).encode()).decode().rstrip("=")
+    launch_url = "ytacervo://prepare?data=" + encoded
+    if len(launch_url) > 30000:
+        raise HTTPException(413, "Divida esta seleção em lotes menores para abrir o aplicativo no Windows.")
+    return {"url": "http://127.0.0.1:8011/downloads#" + urlencode({"transfer": json.dumps(transfer)}),
+            "launch_url": launch_url}
 
 
 @router.get("/channel/{channel_id}")

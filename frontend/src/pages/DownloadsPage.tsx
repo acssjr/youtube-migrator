@@ -37,10 +37,14 @@ export function DownloadsPage() {
   const [refresh, setRefresh] = useState(0);
   const [transferReceived, setTransferReceived] = useState(false);
   const [localLink, setLocalLink] = useState('');
+  const [launchLink, setLaunchLink] = useState('');
+  const pendingTransfer = useRef<{ sources: string[]; format: 'mp3' | 'mp4'; resolution: number }>();
+  const transferStarted = useRef(false);
 
   useEffect(() => { setLocalLink(''); }, [links, selected, source, channelId, playlistInput, format, resolution]);
 
   useEffect(() => {
+    const receive = () => {
     const raw = new URLSearchParams(window.location.hash.slice(1)).get('transfer');
     if (!raw) return;
     try {
@@ -51,9 +55,28 @@ export function DownloadsPage() {
           !['mp3', 'mp4'].includes(transfer.format) || ![360, 720, 1080].includes(transfer.resolution)) throw new Error('A seleção recebida é inválida. Envie novamente pelo site.');
       setLinks(transfer.sources.map((id: string) => `https://www.youtube.com/watch?v=${id}`).join('\n'));
       setFormat(transfer.format); setResolution(transfer.resolution); setTransferReceived(true);
+      transferStarted.current = false;
+      pendingTransfer.current = transfer.autostart === true ? transfer : undefined;
+      setRefresh(n => n + 1);
     } catch (e) { setError(errorMessage(e)); }
     window.history.replaceState({}, '', window.location.pathname + window.location.search);
+    };
+    receive();
+    window.addEventListener('hashchange', receive);
+    return () => window.removeEventListener('hashchange', receive);
   }, []);
+
+  useEffect(() => {
+    if (!pendingTransfer.current || transferStarted.current || status?.mode !== 'local' || !status.engine?.ffmpeg) return;
+    transferStarted.current = true;
+    const transfer = pendingTransfer.current;
+    setBusy(true); setError('');
+    api.downloads.create(transfer.sources, transfer.format, transfer.resolution).then(created => {
+      setJobs(previous => [...created, ...previous.filter(item => !created.some(next => next.id === item.id))]);
+      setNotice('Seleção recebida: a preparação começou automaticamente.');
+      setLinks(''); setRefresh(n => n + 1);
+    }).catch(e => setError(errorMessage(e))).finally(() => setBusy(false));
+  }, [status]);
 
   useEffect(() => {
     let live = true;
@@ -128,6 +151,8 @@ export function DownloadsPage() {
       if (status?.mode === 'companion') {
         const transfer = await api.downloads.handoff(sources, format, resolution, source === 'channel' ? channelId : undefined);
         setLocalLink(transfer.url);
+        setLaunchLink(transfer.launch_url);
+        window.location.href = transfer.launch_url;
         return;
       }
       const created = await api.downloads.create(sources, format, resolution, source === 'channel' ? channelId : undefined);
@@ -152,8 +177,8 @@ export function DownloadsPage() {
 
   return <div>
     <div className="page-heading"><div><h1>Seu acervo, para levar.</h1><p>Baixe áudio em MP3 ou vídeo em MP4 a partir de links, do seu canal ou de playlists.</p></div><span className="heading-mark"><Download size={27}/></span></div>
-    {status?.mode === 'companion' && <div className="notice">Os downloads são preparados no seu computador. Abra <strong>Iniciar Downloads.cmd</strong> na pasta do aplicativo, escolha os vídeos aqui e envie a seleção para ele. Mantenha o aplicativo aberto até concluir.</div>}
-    {transferReceived && <div className="notice">Seleção recebida do site. Confira os vídeos e clique em Preparar para iniciar o download neste computador.</div>}
+    {status?.mode === 'companion' && <div className="notice">Selecione os vídeos e clique em Preparar. O aplicativo abre e inicia a conversão automaticamente. Na primeira utilização neste computador, abra <strong>Iniciar Downloads.cmd</strong> uma vez para habilitar a integração.</div>}
+    {transferReceived && <div className="notice">Seleção recebida do site. A preparação começa automaticamente quando o serviço estiver pronto.</div>}
     <section className="workspace-panel download-form">
       <div className="panel-top"><div><h2>Novo download</h2><p>Selecione quantos vídeos quiser. Os arquivos prontos ficam disponíveis por {status?.retention_hours || 24} horas.</p></div></div>
       <div className="download-controls">
@@ -180,9 +205,9 @@ export function DownloadsPage() {
         <div className="download-format"><div className="download-toggle" role="group" aria-label="Formato do arquivo"><button aria-pressed={format === 'mp3'} disabled={busy} onClick={() => setFormat('mp3')}><Music size={17}/> MP3 · áudio</button><button aria-pressed={format === 'mp4'} disabled={busy} onClick={() => setFormat('mp4')}><Video size={17}/> MP4 · vídeo</button></div>{format === 'mp4' && <label>Qualidade máxima <select value={resolution} disabled={busy} onChange={e => setResolution(Number(e.target.value))}><option value={360}>360p</option><option value={720}>720p</option><option value={1080}>1080p</option></select></label>}</div>
         <small>{format === 'mp3' ? 'MP3 a 192 kbps. A qualidade final depende do áudio original.' : 'Vídeo com áudio. A resolução depende dos formatos disponíveis no YouTube.'}</small>
       </div>
-      <div className="panel-footer"><span>{sources.length} vídeo(s) · preparação em fila</span><button className="primary-action" disabled={busy || !sources.length || loading && source !== 'links' || !status?.available || (status.mode !== 'companion' && !status.engine?.ffmpeg) || !!connectionError} onClick={submit}>{busy ? <Loader2 className="spin" size={17}/> : <Download size={17}/>} {status?.mode === 'companion' ? 'Enviar ao aplicativo local' : `Preparar ${format.toUpperCase()}`}</button></div>
+      <div className="panel-footer"><span>{sources.length} vídeo(s) · preparação em fila</span><button className="primary-action" disabled={busy || !sources.length || loading && source !== 'links' || !status?.available || (status.mode !== 'companion' && !status.engine?.ffmpeg) || !!connectionError} onClick={submit}>{busy ? <Loader2 className="spin" size={17}/> : <Download size={17}/>} {`Preparar ${format.toUpperCase()}`}</button></div>
     </section>
-    {localLink && <section className="workspace-panel download-controls"><strong>Seleção pronta para baixar neste computador.</strong><a className="primary-action" href={localLink} target="_blank" rel="noreferrer">Abrir seleção no aplicativo local <ExternalLink size={16}/></a><small>Se a página não abrir, execute Iniciar Downloads.cmd e clique no link novamente. Os downloads só começam depois que você clicar em Preparar no aplicativo local.</small></section>}
+    {localLink && <section className="workspace-panel download-controls"><strong>O aplicativo vai abrir e preparar sua seleção.</strong><a className="primary-action" href={launchLink}>Abrir aplicativo e iniciar</a><a className="primary-action" href={localLink} target="_blank" rel="noreferrer">Abrir seleção no aplicativo local <ExternalLink size={16}/></a><small>Autorize a abertura do aplicativo quando o navegador solicitar. Se ele ainda não estiver registrado, abra Iniciar Downloads.cmd uma vez e use Abrir aplicativo e iniciar. Se o serviço já estiver aberto, o link acima também começa automaticamente.</small></section>}
     {notice && <div className="notice" role="status">{notice}</div>}
     {(error || connectionError) && <div role="alert" className="error-note">{error || connectionError}<button className="text-action" onClick={() => { setError(''); setRefresh(n => n + 1); }}><RefreshCw size={15}/> Tentar novamente</button></div>}
     {status?.engine && <p className="download-engine-note">{status.engine.ffmpeg ? 'Conversão disponível.' : 'FFmpeg e FFprobe precisam ser instalados no servidor.'} {status.engine.auto_update ? `Motor atualizado automaticamente a cada ${status.engine.update_hours}h.` : 'Atualização automática desativada.'} {status.engine.updating && 'Verificando atualização...'} {status.engine.update_error} {!status.engine.javascript && 'Instale Node.js ou Deno no servidor para ampliar a compatibilidade com o YouTube.'}</p>}

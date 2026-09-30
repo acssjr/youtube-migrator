@@ -243,7 +243,7 @@ class DownloadsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         url = urlparse(response.json()["url"])
         self.assertEqual(url.netloc, "127.0.0.1:8011")
-        self.assertEqual(json.loads(parse_qs(url.fragment)["transfer"][0]), {"sources": [ID], "format": "mp4", "resolution": 720})
+        self.assertEqual(json.loads(parse_qs(url.fragment)["transfer"][0]), {"sources": [ID], "format": "mp4", "resolution": 720, "autostart": True})
         self.assertEqual(self.client.get("/api/downloads/jobs").json(), [])
         self.assertEqual(self.client.post("/api/downloads/handoff", json={"sources": ["http://evil.example/video"], "format": "mp3"}).status_code, 422)
         service = MagicMock()
