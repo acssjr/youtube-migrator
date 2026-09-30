@@ -77,7 +77,9 @@
 .download-toggle button { display:flex; align-items:center; gap:8px; border:1px solid #dedbd4; border-radius:9px; background:white; padding:11px 15px; font-size:13px; }
 .download-toggle button[aria-pressed=true] { border-color:#bc4335; background:#f5e8df; color:#ad3f32; font-weight:700; }
 .download-label { display:grid; gap:9px; font-size:13px; font-weight:600; }
-.download-label textarea,.download-label select,.download-search,.download-format select { border:1px solid #dedbd4; background:#fffdf9; border-radius:9px; padding:12px; color:#26343b; font-size:14px; width:100%; }
+.download-label textarea,.download-label input,.download-label select,.download-search,.download-format select { border:1px solid #dedbd4; background:#fffdf9; border-radius:9px; padding:12px; color:#26343b; font-size:14px; width:100%; }
+.download-controls > .secondary-action { justify-self:start; min-height:44px; border:1px solid #bc4335; border-radius:9px; padding:11px 16px; background:#f5e8df; color:#ad3f32; font-size:13px; font-weight:600; }
+.download-controls > .secondary-action:disabled { opacity:.5; cursor:not-allowed; }
 .download-label textarea { min-height:125px; resize:vertical; font-weight:400; }
 .download-controls small,.download-engine-note { color:#68747a; font-size:12px; font-weight:400; line-height:1.6; }
 .download-format { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
