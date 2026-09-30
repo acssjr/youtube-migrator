@@ -69,7 +69,7 @@ Conectar um canal permite listar seus vídeos pela API oficial. Para baixar cont
 O gateway de nuvem usa `/api/download-worker/status` e `/api/download-worker/jobs` com chave secreta. `/api/download-worker/files/{id}` exige uma assinatura válida e não aceita caminhos fornecidos pelo usuário.
 # Site na Vercel com downloads locais
 
-Abra `Iniciar Downloads.cmd` na raiz do projeto (Windows). O iniciador prepara as dependências, abre http://127.0.0.1:8011/downloads e mantém o serviço em execução. Requer Python, uv, Node.js/npm e FFmpeg/FFprobe instalados. Feche com Ctrl+C depois que os downloads terminarem.
+Abra `Iniciar Downloads.cmd` na raiz do projeto (Windows). O iniciador prepara as dependências, abre http://localhost:8011/downloads e mantém o serviço em execução. Requer Python, uv, Node.js/npm e FFmpeg/FFprobe instalados. Feche com Ctrl+C depois que os downloads terminarem.
 
 No site publicado, selecione links ou vídeos do canal conectado, escolha MP3/MP4 e clique em **Enviar ao aplicativo local**. Abra o link gerado e confirme **Preparar** na página local. A seleção é validada no site e transferida sem credenciais OAuth. O download só começa após sua confirmação local.
 

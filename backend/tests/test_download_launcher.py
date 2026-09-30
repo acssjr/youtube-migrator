@@ -17,7 +17,7 @@ class LauncherTests(unittest.TestCase):
     def test_valid_transfer_is_clean_and_autostarts(self):
         payload = {"sources": ["abcdefghijk"], "format": "mp3", "resolution": 1080, "command": "unsafe"}
         target = launcher.transfer_url(self.link(payload))
-        self.assertEqual(urlparse(target).netloc, "127.0.0.1:8011")
+        self.assertEqual(urlparse(target).netloc, "localhost:8011")
         clean = json.loads(parse_qs(urlparse(target).fragment)["transfer"][0])
         self.assertEqual(clean, {"sources": ["abcdefghijk"], "format": "mp3", "resolution": 1080, "autostart": True})
 
@@ -27,4 +27,4 @@ class LauncherTests(unittest.TestCase):
                 launcher.transfer_url(argument)
 
     def test_regular_launch_does_not_start_jobs(self):
-        self.assertEqual(launcher.transfer_url(), "http://127.0.0.1:8011/downloads")
+        self.assertEqual(launcher.transfer_url(), "http://localhost:8011/downloads")

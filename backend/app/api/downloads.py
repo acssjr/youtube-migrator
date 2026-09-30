@@ -106,7 +106,7 @@ def status(request: Request, response: Response):
     owner(request, response)
     if cloud_mode() and not settings.DOWNLOAD_WORKER_URL:
         return {"available": True, "mode": "companion", "retention_hours": settings.DOWNLOAD_RETENTION_HOURS,
-                "engine": None, "local_url": "http://127.0.0.1:8011/downloads"}
+                "engine": None, "local_url": "http://localhost:8011/downloads"}
     if use_remote():
         return remote("GET", "/status")
     return {"available": True, "mode": "local", "retention_hours": settings.DOWNLOAD_RETENTION_HOURS,
@@ -131,7 +131,7 @@ def handoff(payload: DownloadRequest, request: Request, session: Session = Depen
     launch_url = "ytacervo://prepare?data=" + encoded
     if len(launch_url) > 30000:
         raise HTTPException(413, "Divida esta seleção em lotes menores para abrir o aplicativo no Windows.")
-    return {"url": "http://127.0.0.1:8011/downloads#" + urlencode({"transfer": json.dumps(transfer)}),
+    return {"url": "http://localhost:8011/downloads#" + urlencode({"transfer": json.dumps(transfer)}),
             "launch_url": launch_url}
 
 

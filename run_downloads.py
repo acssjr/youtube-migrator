@@ -13,7 +13,7 @@ from urllib.request import urlopen
 import webbrowser
 
 ROOT = Path(__file__).resolve().parent
-URL = "http://127.0.0.1:8011"
+URL = "http://localhost:8011"
 PROCESS_OPTIONS = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" and sys.stdout is None else {}
 
 
