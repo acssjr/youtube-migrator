@@ -1,3 +1,4 @@
+import { formatStoredDate } from '../services/dates';
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 
@@ -84,7 +85,7 @@ export default function MetadataRevisions({ channelId: initialChannel }: { chann
     <h3>Últimas 200 revisões</h3>
     {!history.length && <p>Nenhuma revisão registrada neste canal.</p>}
     {history.filter(item => item.status !== 'preview').map(revision => <details key={revision.id} style={{ borderTop: '1px solid #e5e3dc', padding: '12px 0' }}>
-      <summary>{revision.after_snippet.title} · {({ applied: 'Publicada', failed: 'Sem confirmação', pending: 'Em processamento', restored: 'Restaurada' } as Record<string, string>)[revision.status] || revision.status} · {new Date(`${revision.created_at}Z`).toLocaleString('pt-BR')}</summary>
+      <summary>{revision.after_snippet.title} · {({ applied: 'Publicada', failed: 'Sem confirmação', pending: 'Em processamento', restored: 'Restaurada' } as Record<string, string>)[revision.status] || revision.status} · {formatStoredDate(revision.created_at)}</summary>
       <Comparison revision={revision}/>
       {['applied', 'failed', 'pending'].includes(revision.status) && <button className="secondary-action" disabled={busy} onClick={() => restore(revision)}>Restaurar a versão anterior</button>}
     </details>)}

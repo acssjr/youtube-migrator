@@ -1,3 +1,4 @@
+import { formatStoredDate } from '../services/dates';
 import { useEffect, useState } from 'react';
 import { acervoApi, AcervoRecord } from '../services/acervoApi';
 
@@ -81,7 +82,7 @@ export function ApprovedTexts({ channelId }: { channelId?: string }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}><button type="button" className="primary-action" onClick={save}>Salvar texto</button>{editing && <button type="button" className="secondary-action" onClick={remove}>Excluir texto</button>}</div>
       </fieldset>
       {notice && <p role="status">{notice}</p>}
-      {editing && <details><summary>Versões anteriores ({history.length})</summary>{history.map(version => <article key={version.id} style={{ borderTop: '1px solid #ddd', padding: '12px 0' }}><p>{new Date(version.created_at).toLocaleString('pt-BR')} · {version.payload.name}</p><pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{version.payload.text}</pre><button type="button" className="secondary-action" disabled={busy} onClick={() => { setDraft({ ...version.payload }); setNotice('Versão carregada. Confira e salve para restaurar, mantendo o histórico.'); }}>Usar esta versão</button></article>)}</details>}
+      {editing && <details><summary>Versões anteriores ({history.length})</summary>{history.map(version => <article key={version.id} style={{ borderTop: '1px solid #ddd', padding: '12px 0' }}><p>{formatStoredDate(version.created_at)} · {version.payload.name}</p><pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{version.payload.text}</pre><button type="button" className="secondary-action" disabled={busy} onClick={() => { setDraft({ ...version.payload }); setNotice('Versão carregada. Confira e salve para restaurar, mantendo o histórico.'); }}>Usar esta versão</button></article>)}</details>}
     </div>
   </section>;
 }
