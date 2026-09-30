@@ -109,7 +109,8 @@ def main():
 
 if __name__ == "__main__":
     if os.name == "nt" and sys.stdout is None:
-        log = open(ROOT / "downloads-launcher.log", "a", encoding="utf-8", buffering=1)
+        (ROOT / "downloads").mkdir(exist_ok=True)
+        log = open(ROOT / "downloads/launcher.log", "a", encoding="utf-8", buffering=1)
         sys.stdout = sys.stderr = log
     try:
         main()
