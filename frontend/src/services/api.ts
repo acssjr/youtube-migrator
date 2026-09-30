@@ -27,6 +27,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   uploads: {
+    playlists: (channelId: string) => request<{ id: string; title: string; privacy: 'private' | 'public' | 'unlisted' }[]>(`/uploads/${encodeURIComponent(channelId)}/playlists`),
+    createPlaylist: (channelId: string, referenceId: string, title: string, videoIds: string[], privacy: 'private' | 'public' | 'unlisted') =>
+      request<{ id: string; title: string; url: string; complete: boolean; items: { video_id: string; status: string; message?: string }[] }>('/uploads/playlists', { method: 'POST', body: JSON.stringify({ channel_id: channelId, reference_id: referenceId, title, video_ids: videoIds, privacy }) }),
     catalog: (channelId: string) => request<{ composers: string[]; arrangers: string[]; ensembles: string[] }>(`/uploads/${encodeURIComponent(channelId)}/catalog`),
     authorize: (channelId: string) => request<{ access_token: string }>('/uploads/authorize', { method: 'POST', body: JSON.stringify({ channel_id: channelId }) }),
     preview: (channelId: string, items: { id: string; title: string; identity: { work: string; composer: string; arranger: string } }[]) =>

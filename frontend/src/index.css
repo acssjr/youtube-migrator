@@ -3,6 +3,28 @@
 @tailwind components;
 @tailwind utilities;
 
+.name-picker { position:relative; width:100%; }
+.uploads-page .name-picker input { padding-right:38px; }
+.name-picker > button { position:absolute; right:8px; top:50%; transform:translateY(-35%); background:transparent; border:0; padding:5px; color:#66777b; cursor:pointer; }
+.name-picker-popup { position:fixed; z-index:1000; overflow:auto; background:#fff; color:#202a32; border:1px solid #dedbd4; border-radius:10px; box-shadow:0 8px 25px #202a3220; padding:5px; color-scheme:light; }
+.name-picker-popup [role=option] { display:block; width:100%; text-align:left; padding:11px 10px; border:0; background:#fff; color:#202a32; border-radius:6px; font-size:12px; line-height:1.5; cursor:pointer; overflow-wrap:anywhere; }
+.name-picker-popup [role=option]:hover,.name-picker-popup [role=option].highlighted { background:#faf2ec; }
+.name-picker-popup [aria-selected=true] { color:#a34235; font-weight:700; }
+.name-picker-popup p { font-size:12px; color:#68777b; padding:7px 9px; }
+.genre-picker { grid-column:1/-1; }
+.genre-picker > span { display:block; font-size:11px; font-weight:700; }
+.genre-picker > div { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.genre-picker button { border:1px solid #dedbd4; background:#fff; color:#526066; border-radius:8px; min-height:38px; padding:8px 12px; font-size:12px; cursor:pointer; }
+.genre-picker button:hover:not(:disabled) { border-color:#bd4939; }
+.genre-picker button[aria-pressed=true] { background:#b53f31; border-color:#b53f31; color:#fff; }
+.genre-picker button:disabled { opacity:.55; cursor:not-allowed; }
+.genre-picker > label { display:block; max-width:300px; margin-top:12px; }
+.batch-playlist { margin-top:20px; }
+.batch-playlist .upload-defaults { grid-template-columns:minmax(0,1fr); }
+.batch-playlist ul { padding:0 29px 0 48px; font-size:12px; line-height:1.8; color:#526066; }
+.playlist-result { padding:0 29px 24px; display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:#38795c; }
+.playlist-result a { display:flex; align-items:center; gap:5px; color:#a34235; }
+
 .upload-defaults { padding:22px 29px; display:grid; grid-template-columns:220px minmax(220px,1fr) auto; align-items:end; gap:16px; }
 .uploads-page label { font-size:11px; font-weight:700; }
 .upload-defaults input,.upload-defaults select,.upload-fields input,.upload-fields select,.upload-title input { display:block; width:100%; margin-top:7px; border:1px solid #dedbd4; border-radius:8px; background:#fff; padding:10px 11px; font-size:12px; font-weight:400; min-width:0; }

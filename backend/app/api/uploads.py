@@ -2,6 +2,9 @@
 
 from urllib.parse import urlparse
 import re
+import json
+from typing import Literal
+from loguru import logger
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from google.auth.transport.requests import Request as GoogleRequest
@@ -35,6 +38,58 @@ class PreviewUploads(BaseModel):
 
 class AuthorizeUpload(BaseModel):
     channel_id: str
+
+
+class CreateBatchPlaylist(BaseModel):
+    channel_id: str
+    reference_id: str
+    title: str = Field(min_length=1, max_length=150)
+    video_ids: list[str] = Field(min_length=1, max_length=50)
+    privacy: Literal["public", "unlisted", "private"] = "private"
+
+
+@router.get("/{channel_id}/playlists")
+def playlists(channel_id: str, request: Request, response: Response, session: Session = Depends(get_session)):
+    response.headers["Cache-Control"] = "no-store"
+    service = channel_service(channel_id, session, request)
+    return [{"id": item["id"], "title": item["snippet"]["title"], "privacy": item.get("status", {}).get("privacyStatus", "private")}
+            for item in service.list_playlists()]
+
+
+@router.post("/playlists")
+def create_batch_playlist(payload: CreateBatchPlaylist, request: Request, session: Session = Depends(get_session)):
+    service = channel_service(payload.channel_id, session, request)
+    title = payload.title.strip()
+    if not title or "<" in title or ">" in title or len(set(payload.video_ids)) != len(payload.video_ids):
+        raise HTTPException(400, "Confira o título e selecione vídeos distintos.")
+    owned_playlists = service.list_playlists()
+    if not any(item["id"] == payload.reference_id for item in owned_playlists):
+        raise HTTPException(403, "A playlist de referência não pertence ao canal conectado.")
+    owned = {video["id"] for video in service.list_all_video_resources()}
+    if any(video_id not in owned for video_id in payload.video_ids):
+        raise HTTPException(403, "Todos os vídeos devem pertencer ao canal conectado.")
+    matching = [item for item in owned_playlists if item["snippet"]["title"] == title]
+    if len(matching) > 1:
+        raise HTTPException(409, "Há mais de uma playlist com esse título. Escolha um título distinto.")
+    playlist_id = matching[0]["id"] if matching else service.create_playlist(title, privacy_status=payload.privacy)
+    existing = set(service.playlist_video_ids(playlist_id)) if matching else set()
+    results = []
+    for video_id in payload.video_ids:
+        try:
+            if video_id not in existing:
+                service.add_video_to_playlist(playlist_id, video_id)
+                existing.add(video_id)
+            results.append({"video_id": video_id, "status": "added"})
+        except Exception as error:
+            logger.exception("Failed to add video to batch playlist")
+            try:
+                message = json.loads(error.content).get("error", {}).get("message", "Não foi possível adicionar o vídeo.")
+            except (AttributeError, ValueError, TypeError):
+                message = "Não foi possível adicionar o vídeo. Tente novamente."
+            results.append({"video_id": video_id, "status": "error", "message": message})
+    confirmed = set(service.playlist_video_ids(playlist_id))
+    return {"id": playlist_id, "title": title, "url": f"https://www.youtube.com/playlist?list={playlist_id}",
+            "items": results, "complete": all(video_id in confirmed for video_id in payload.video_ids)}
 
 
 def published_person_name(value: str) -> str:

@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from starlette.requests import Request
 
 from app.api.uploads import AuthorizeUpload, PreviewUploads, UploadDraft, authorize, catalog, preview, published_person_name
+from app.api.uploads import CreateBatchPlaylist, create_batch_playlist
 
 
 def browser(origin="https://acervo.test"):
@@ -15,6 +16,41 @@ def browser(origin="https://acervo.test"):
 
 
 class UploadTests(unittest.TestCase):
+    def test_new_playlist_adds_videos_before_final_verification(self):
+        service = Mock()
+        service.list_playlists.return_value = [{"id": "ref", "snippet": {"title": "Reference"}}]
+        service.list_all_video_resources.return_value = [{"id": "a"}]
+        service.create_playlist.return_value = "new"
+        service.playlist_video_ids.return_value = ["a"]
+        payload = CreateBatchPlaylist(channel_id="c", reference_id="ref", title="New", video_ids=["a"], privacy="public")
+        with patch("app.api.uploads.channel_service", return_value=service):
+            result = create_batch_playlist(payload, browser(), None)
+        service.create_playlist.assert_called_once_with("New", privacy_status="public")
+        service.playlist_video_ids.assert_called_once_with("new")
+        service.add_video_to_playlist.assert_called_once_with("new", "a")
+        self.assertTrue(result["complete"])
+
+    def test_playlist_validates_video_ownership_before_creating(self):
+        service = Mock()
+        service.list_playlists.return_value = [{"id": "ref", "snippet": {"title": "Reference"}}]
+        service.list_all_video_resources.return_value = []
+        payload = CreateBatchPlaylist(channel_id="c", reference_id="ref", title="New", video_ids=["foreign"])
+        with patch("app.api.uploads.channel_service", return_value=service), self.assertRaises(HTTPException):
+            create_batch_playlist(payload, browser(), None)
+        service.create_playlist.assert_not_called()
+
+    def test_playlist_retry_reuses_playlist_and_skips_existing_videos(self):
+        service = Mock()
+        service.list_playlists.return_value = [{"id": "ref", "snippet": {"title": "Reference"}}, {"id": "existing", "snippet": {"title": "New"}}]
+        service.list_all_video_resources.return_value = [{"id": "a"}, {"id": "b"}]
+        service.playlist_video_ids.side_effect = [["a"], ["a", "b"]]
+        payload = CreateBatchPlaylist(channel_id="c", reference_id="ref", title="New", video_ids=["a", "b"])
+        with patch("app.api.uploads.channel_service", return_value=service):
+            result = create_batch_playlist(payload, browser(), None)
+        service.create_playlist.assert_not_called()
+        service.add_video_to_playlist.assert_called_once_with("existing", "b")
+        self.assertTrue(result["complete"])
+
     def test_authorization_rejects_another_origin_before_reading_tokens(self):
         with patch("app.api.uploads.channel_service") as service:
             with self.assertRaises(HTTPException) as error:

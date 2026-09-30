@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ExternalLink, Pause, Play, Plus, Sparkles, Trash2, Upload, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import { Account } from '../types';
+import { NamePicker } from '../components/NamePicker';
+import { BatchPlaylist } from '../components/BatchPlaylist';
 import { composeUploadTitle, Privacy, UploadItem, uploadQueue } from '../services/uploadQueue';
 
 const privacyLabels = { private: 'Privado', unlisted: 'Não listado', public: 'Público' };
@@ -19,6 +21,7 @@ export function UploadsPage() {
   const [ensemble, setEnsemble] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [customGenres, setCustomGenres] = useState<Record<string, boolean>>({});
   const fileInput = useRef<HTMLInputElement>(null);
   const channelId = queue.channelId || accounts[0]?.channel_id || '';
   const pending = queue.items.filter(item => item.included && item.status !== 'completed');
@@ -62,16 +65,12 @@ export function UploadsPage() {
       {!accounts.length ? <div className="notice">Conecte o canal em Configurações para preparar seu lote.</div> : <>
         <div className="upload-defaults">
           <label>Visibilidade para novos arquivos<select value={privacy} disabled={queue.running || busy} onChange={e => setPrivacy(e.target.value as Privacy)}>{Object.entries(privacyLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-          <label>Filarmônica do lote<input list="upload-ensembles" value={ensemble} disabled={queue.running || busy} placeholder="Selecione ou digite o nome" onChange={e => setEnsemble(e.target.value)}/></label>
+          <label>Filarmônica do lote<NamePicker label="Filarmônica do lote" options={names('ensembles')} value={ensemble} disabled={queue.running || busy} onChange={setEnsemble}/></label>
           <button className="text-action" disabled={queue.running || busy || !queue.items.length} onClick={() => queue.items.filter(item => !item.sessionUrl && item.status !== 'completed').forEach(item => change(item, { ensemble, privacy }))}>Aplicar ao lote</button>
         </div>
         <div className="upload-select"><button className="primary-action" disabled={queue.running || busy} onClick={() => fileInput.current?.click()}><Plus size={17}/> {queue.items.some(item => !uploadQueue.hasFile(item.id) && item.status !== 'completed') ? 'Selecionar / reconectar arquivos' : 'Selecionar vídeos'}</button><span>Até 50 arquivos · {catalogBusy ? 'Lendo nomes do acervo…' : `${catalog.composers.length} compositores no acervo`}</span><input ref={fileInput} type="file" multiple accept="video/*,.mkv,.mts,.m2ts,.m4v" hidden onChange={event => { uploadQueue.add(Array.from(event.target.files || []), privacy, channelId, ensemble); event.target.value = ''; }}/></div>
       </>}
     </section>
-    <datalist id="upload-composers">{names('composers').map(name => <option key={name} value={name}/>)}</datalist>
-    <datalist id="upload-arrangers">{names('arrangers').map(name => <option key={name} value={name}/>)}</datalist>
-    <datalist id="upload-ensembles">{names('ensembles').map(name => <option key={name} value={name}/>)}</datalist>
-    <datalist id="upload-genres">{genres.map(name => <option key={name} value={name}/>)}</datalist>
     {(error || queue.storageError) && <div role="alert" className="error-note">{error || queue.storageError}</div>}
     {queue.items.length > 0 && <>
       <div className="upload-batch-actions"><span>{pending.length} na fila · {sizeLabel(selectedSize)}</span><button className="text-action" disabled={queue.running || busy || !pending.some(item => !item.sessionUrl)} onClick={preview}>{busy ? <Loader2 className="spin" size={17}/> : <Sparkles size={17}/>} Buscar descrições no acervo</button><button className="text-action" disabled={queue.running || busy} onClick={() => { if (window.confirm('Limpar os rascunhos e o histórico deste lote? Vídeos já enviados continuam no YouTube.')) uploadQueue.clear(); }}><Trash2 size={16}/> Limpar lote</button></div>
@@ -81,11 +80,11 @@ export function UploadsPage() {
         return <section className={`workspace-panel upload-card ${item.status}`} key={item.id}>
           <div className="upload-file-heading"><label><input type="checkbox" checked={item.included} disabled={queue.running || busy || item.status === 'completed'} onChange={e => uploadQueue.patch(item.id, { included: e.target.checked })}/><span className="upload-index">{String(index + 1).padStart(2, '0')}</span><span><strong>{item.name}</strong><small>{sizeLabel(item.size)} · {statusLabels[item.status]}{item.status !== 'completed' && !uploadQueue.hasFile(item.id) ? ' · Selecione novamente o arquivo original' : ''}</small></span></label><button aria-label={`Remover ${item.name}`} className="text-action" disabled={queue.running || busy} onClick={() => { if (!item.sessionUrl || window.confirm('Remover este envio interrompido da fila? Antes de enviar novamente, confira se ele já apareceu no canal.')) uploadQueue.remove(item.id); }}><Trash2 size={16}/></button></div>
           {item.status !== 'completed' && <div className="upload-fields">
-            <label>Gênero <small>opcional</small><input list="upload-genres" value={item.genre} disabled={locked} placeholder="Dobrado, marcha…" onChange={e => change(item, { genre: e.target.value })}/></label>
+            <div className="genre-picker"><span>Gênero <small>opcional</small></span><div role="group" aria-label={`Gênero de ${item.name}`}>{['', ...genres].map(genre => <button type="button" key={genre} aria-pressed={item.genre === genre} disabled={locked} onClick={() => { change(item, { genre }); setCustomGenres(prev => ({ ...prev, [item.id]: false })); }}>{genre || 'Sem gênero'}</button>)}<button type="button" aria-pressed={!!customGenres[item.id] || (!!item.genre && !genres.includes(item.genre))} disabled={locked} onClick={() => setCustomGenres(prev => ({ ...prev, [item.id]: true }))}>Outro</button></div>{(customGenres[item.id] || (!!item.genre && !genres.includes(item.genre))) && <label>Outro gênero<input value={item.genre} disabled={locked} placeholder="Digite o gênero" onChange={event => change(item, { genre: event.target.value })}/></label>}</div>
             <label className="upload-work">Nome da obra <small>obrigatório</small><input value={item.identity.work} disabled={locked} placeholder="Allah" onChange={e => change(item, { identity: { ...item.identity, work: e.target.value } })}/></label>
-            <label>Compositor<input list="upload-composers" value={item.identity.composer} disabled={locked} placeholder="Selecione ou digite" onChange={e => change(item, { identity: { ...item.identity, composer: e.target.value } })}/></label>
-            <label>Filarmônica<input list="upload-ensembles" value={item.ensemble} disabled={locked} placeholder="Selecione ou digite" onChange={e => change(item, { ensemble: e.target.value })}/></label>
-            <label>Arranjador <small>opcional</small><input list="upload-arrangers" value={item.identity.arranger} disabled={locked} placeholder="Selecione ou digite" onChange={e => change(item, { identity: { ...item.identity, arranger: e.target.value } })}/></label>
+            <label>Compositor<NamePicker label={`Compositor de ${item.name}`} options={names('composers')} value={item.identity.composer} disabled={locked} onChange={composer => change(item, { identity: { ...item.identity, composer } })}/></label>
+            <label>Filarmônica<NamePicker label={`Filarmônica de ${item.name}`} options={names('ensembles')} value={item.ensemble} disabled={locked} onChange={ensemble => change(item, { ensemble })}/></label>
+            <label>Arranjador <small>opcional</small><NamePicker label={`Arranjador de ${item.name}`} options={names('arrangers')} value={item.identity.arranger} disabled={locked} onChange={arranger => change(item, { identity: { ...item.identity, arranger } })}/></label>
             <label>Visibilidade<select value={item.privacy} disabled={locked} onChange={e => uploadQueue.patch(item.id, { privacy: e.target.value as Privacy })}>{Object.entries(privacyLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
             <label>Conteúdo para crianças<select value={item.madeForKids ? 'yes' : 'no'} disabled={locked} onChange={e => uploadQueue.patch(item.id, { madeForKids: e.target.value === 'yes' })}><option value="no">Não, não é feito para crianças</option><option value="yes">Sim, é feito para crianças</option></select></label>
           </div>}
@@ -99,5 +98,6 @@ export function UploadsPage() {
       })}
       <div className="upload-start"><div><strong>Confira as informações antes de enviar.</strong><p>Mantenha esta aba aberta. A fila continua ao trocar de ferramenta neste site. Após recarregar, selecione novamente os arquivos originais para retomar.</p><small>Projetos de API sem auditoria podem ter os uploads limitados a privados pelo YouTube. <a href="https://developers.google.com/youtube/v3/docs/videos/insert" target="_blank" rel="noreferrer">Entenda a restrição</a>.</small></div>{queue.running ? <button className="primary-action" onClick={uploadQueue.pause}><Pause size={17}/> Pausar fila</button> : <button className="primary-action" disabled={busy || !pending.length || !accounts.some(account => account.channel_id === channelId)} onClick={start}><Play size={17}/> Enviar {pending.length} vídeo(s)</button>}</div>
     </>}
+    {queue.items.some(item => item.status === 'completed' && item.videoId) && <BatchPlaylist channelId={channelId} ensemble={queue.items.find(item => item.ensemble)?.ensemble || ensemble} videos={queue.items.filter(item => item.status === 'completed' && item.videoId).map(item => ({ id: item.videoId!, title: item.title }))}/>}
   </div>;
 }

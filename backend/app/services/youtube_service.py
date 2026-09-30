@@ -179,6 +179,19 @@ class YoutubeService:
         logger.info(f"Added video {video_id} to playlist {playlist_id}")
         return playlist_item_id
 
+    def playlist_video_ids(self, playlist_id: str) -> list[str]:
+        ids = []
+        request = self.youtube.playlistItems().list(part="contentDetails", playlistId=playlist_id, maxResults=50)
+        while request:
+            try:
+                response = request.execute()
+            except Exception:
+                logger.exception("Failed to read playlist items")
+                raise
+            ids.extend(item["contentDetails"]["videoId"] for item in response.get("items", []) if item.get("contentDetails", {}).get("videoId"))
+            request = self.youtube.playlistItems().list_next(request, response)
+        return ids
+
     def _ensure_aspect_ratio(self, image_path: str, target_aspect: float = 16.0 / 9.0) -> bool:
         """Crop the image to the target aspect ratio if necessary to satisfy YouTube API requirements."""
         try:
